@@ -1,0 +1,8 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "Coco Garden : démarrer", "type": "shell", "command": "npm.cmd run dev", "isBackground": true, "problemMatcher": [] },
+    { "label": "Coco Garden : vérifier", "type": "shell", "command": "npm.cmd run typecheck", "problemMatcher": [] },
+    { "label": "Coco Garden : construire", "type": "shell", "command": "npm.cmd run build", "group": "build", "problemMatcher": [] }
+  ]
+}
