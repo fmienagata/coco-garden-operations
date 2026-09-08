@@ -11,6 +11,7 @@ const modules = [
   { href: '/carte', label: 'Carte', detail: 'Plats et disponibilités', path: 'M4 4h6a3 3 0 0 1 3 3v14a3 3 0 0 0-3-3H4zM13 7a3 3 0 0 1 3-3h4v14h-4a3 3 0 0 0-3 3' },
   { href: '/notifications', label: 'Notifications', detail: 'Suivre les messages', path: 'M4 4h16v12H9l-5 4zM8 8h8M8 12h5' },
   { href: '/pilotage', label: 'Pilotage', detail: 'Ventes et encaissements', path: 'M4 20h17M7 16v-5M12 16V4M17 16V8' },
+  { href: '/api-docs', label: 'API', detail: 'Endpoints et tests', path: 'M8 9l3 3-3 3M13 15h3M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z' },
 ];
 export default function ModuleNavigation() {
   const pathname = usePathname(); const router = useRouter();

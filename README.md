@@ -46,6 +46,7 @@ La gestion manuelle de la carte est disponible sur `/carte` après connexion.
 Le module Livraison est disponible sur `/livraison` après connexion. Il permet d'ajouter des livreurs, d'affecter une commande prête, d'enregistrer le départ et de confirmer la remise au client.
 Les livreurs n'ont pas de compte dans l'application : le management les inscrit, conserve leur numéro WhatsApp et met à jour leur disponibilité. Seuls les livreurs disponibles peuvent être affectés.
 Le centre Notifications est disponible sur `/notifications`. Il conserve l'historique des messages WhatsApp livreur/client, leur statut, l'heure d'envoi et permet une relance manuelle.
+Les zones et tarifs de livraison sont gérés par le management sur `/livraison`. Les nouvelles commandes livrées utilisent une zone active et ajoutent automatiquement son tarif au total.
 
 ## Configuration future
 

@@ -23,6 +23,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     customerName?: string;
     customerPhone?: string;
     deliveryAddress?: string;
+    deliveryZoneName?: string;
+    deliveryFee?: number;
     deliveryNotes?: string;
     items: { qty: number; name: string }[];
   } | null;
@@ -34,6 +36,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     `Client: ${order.customerName || 'Non renseigné'}`,
     `Téléphone: ${order.customerPhone}`,
     `Adresse: ${order.deliveryAddress}`,
+    `Zone: ${order.deliveryZoneName || 'Non renseignée'} · Frais: ${order.deliveryFee || 0} FCFA`,
     `Détail: ${items}`,
     order.deliveryNotes ? `Consignes: ${order.deliveryNotes}` : '',
   ].filter(Boolean).join('\n');

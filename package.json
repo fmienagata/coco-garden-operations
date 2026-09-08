@@ -11,7 +11,8 @@
     "test:pilotage:api": "node tests/test-pilotage-api.cjs",
     "test:orders": "node tests/test-orders.js",
     "seed:demo": "node scripts/seed-demo-orders.js",
-    "seed:menu": "node scripts/seed-menu.js"
+    "seed:menu": "node scripts/seed-menu.js",
+    "seed:delivery-zones": "node scripts/seed-delivery-zones.js"
   },
   "dependencies": {
     "next": "^16.3.4",

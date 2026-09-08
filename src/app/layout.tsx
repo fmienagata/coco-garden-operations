@@ -7,6 +7,7 @@ import "./ui-pro.css";
 import "./delivery-polish.css";
 import "./notifications.css";
 import "./restaurant-contact.css";
+import "./api-explorer.css";
 import RestaurantContact from '../components/RestaurantContact';
 import ModuleNavigation from '../components/ModuleNavigation';
 import { RESTAURANT_NAME } from '../lib/restaurant';

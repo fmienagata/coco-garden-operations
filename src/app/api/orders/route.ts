@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 import { AUTH_COOKIE, getSession } from '../../../lib/auth';
 import { getNextOrderNumber } from '../../../lib/orders';
 import MenuItem from '../../../lib/models/MenuItem';
+import DeliveryZone from '../../../lib/models/DeliveryZone';
 
 export async function GET() {
   const cookieStore = await cookies();
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   await connectMongo();
   const body = await request.json();
-  const { tableNumber, items, fulfillmentType = 'takeaway', customerName, customerPhone, deliveryAddress, deliveryNotes, driverPhone } = body;
+  const { tableNumber, items, fulfillmentType = 'takeaway', customerName, customerPhone, deliveryAddress, deliveryNotes, driverPhone, deliveryZoneId } = body;
   const hasValidTable = Number.isInteger(tableNumber) && tableNumber > 0;
   const hasDeliveryDetails = typeof customerPhone === 'string' && customerPhone.trim().length >= 8 && typeof deliveryAddress === 'string' && deliveryAddress.trim().length >= 5;
   if ((!hasValidTable && fulfillmentType === 'takeaway') || (hasValidTable && fulfillmentType === 'delivery') || (fulfillmentType === 'delivery' && !hasDeliveryDetails) || !Array.isArray(items) || items.length === 0 || !['delivery', 'takeaway'].includes(fulfillmentType)) {
@@ -38,8 +39,13 @@ export async function POST(request: Request) {
   });
   if (normalizedItems.some((item) => !item)) return Response.json({ error: 'Each item must match an available menu item and have a positive quantity' }, { status: 400 });
   const validItems = normalizedItems as { name: string; itemCode: string; qty: number; price: number }[];
-  const total = validItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const zone = fulfillmentType === 'delivery'
+    ? await DeliveryZone.findOne({ restaurantId: session.restaurantId, ...(deliveryZoneId ? { _id: deliveryZoneId } : {}), active: true }).lean() as { _id: unknown; name: string; fee: number } | null
+    : null;
+  if (fulfillmentType === 'delivery' && !zone) return Response.json({ error: 'Choisissez une zone de livraison active' }, { status: 400 });
+  const deliveryFee = zone?.fee || 0;
+  const total = validItems.reduce((sum, item) => sum + item.price * item.qty, 0) + deliveryFee;
   const orderNumber = await getNextOrderNumber(session.restaurantId);
-  const doc = await Order.create({ restaurantId: session.restaurantId, orderNumber, fulfillmentType, tableNumber, items: validItems, total, customerName, customerPhone, deliveryAddress, deliveryNotes, driverPhone });
+  const doc = await Order.create({ restaurantId: session.restaurantId, orderNumber, fulfillmentType, tableNumber, items: validItems, total, deliveryFee, deliveryZoneId: zone ? String(zone._id) : undefined, deliveryZoneName: zone?.name, customerName, customerPhone, deliveryAddress, deliveryNotes, driverPhone });
   return new Response(JSON.stringify(doc), { status: 201 });
 }
