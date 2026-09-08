@@ -7,7 +7,16 @@ import Settlement from '../../../../lib/models/Settlement';
 export async function POST(request: Request) {
   const session = getSession((await cookies()).get(AUTH_COOKIE)?.value);
   if (!session) return Response.json({ error: 'Connexion requise.' }, { status: 401 });
-  if (request.headers.get('origin') && request.headers.get('origin') !== new URL(request.url).origin) return Response.json({ error: 'Origine non autorisée.' }, { status: 403 });
+  const origin = request.headers.get('origin');
+  if (origin) {
+    const requestUrl = new URL(request.url);
+    const allowedOrigins = new Set([requestUrl.origin, process.env.APP_URL, process.env.NEXT_PUBLIC_APP_URL]);
+    if (process.env.NODE_ENV !== 'production') {
+      allowedOrigins.add('http://localhost:3001');
+      allowedOrigins.add('http://127.0.0.1:3001');
+    }
+    if (!allowedOrigins.has(origin)) return Response.json({ error: 'Origine non autorisée.' }, { status: 403 });
+  }
   const body = await request.json().catch(() => null);
   if (!body || !mongoose.isValidObjectId(body.orderId) || !['pay', 'refund', 'collect'].includes(body.action)) return Response.json({ error: 'Action invalide.' }, { status: 400 });
   if (body.confirmed !== true) return Response.json({ error: 'Une confirmation explicite est nécessaire.' }, { status: 400 });
