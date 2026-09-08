@@ -1,0 +1,4 @@
+.brand-logo{display:block;width:min(360px,52vw);height:auto}.auth-logo{display:block;width:100%;max-width:360px;margin:0 auto 24px;border-radius:4px}.kitchen-logo{display:block;width:min(300px,70vw);height:auto;margin-bottom:18px}.kitchen-header .eyebrow{margin:0 0 8px}@media(max-width:540px){.brand-logo{width:min(300px,82vw)}.auth-logo{max-width:330px}.kitchen-logo{width:min(330px,100%)}}
+.order-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}.whatsapp-button{background:#27734c!important;font-size:12px!important;padding:9px 10px!important}
+.driver-message-sent{color:#27734c;font-weight:bold}.driver-message-pending{color:#9b7126}
+.customer-button{background:#b36e22!important;color:white!important;font-size:12px!important;padding:9px 10px!important;border:0;border-radius:8px;font:inherit;font-weight:bold;cursor:pointer}

@@ -3,15 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --hostname 127.0.0.1",
+    "dev": "next dev --hostname 127.0.0.1 --port 3001",
     "build": "next build",
-    "start": "next start --hostname 127.0.0.1",
-    "typecheck": "tsc --noEmit"
+    "start": "next start --hostname 127.0.0.1 --port 3001",
+    "typecheck": "tsc --noEmit",
+    "test:orders": "node tests/test-orders.js",
+    "seed:demo": "node scripts/seed-demo-orders.js",
+    "seed:menu": "node scripts/seed-menu.js"
   },
   "dependencies": {
     "next": "^16.3.4",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "mongoose": "^7.5.0"
   },
   "devDependencies": {
     "@types/node": "^26.5.0",

@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./logo.css";
+import "./menu.css";
+import "./delivery.css";
+import "./ui-pro.css";
+import "./delivery-polish.css";
+import { RESTAURANT_NAME } from '../lib/restaurant';
 
 export const metadata: Metadata = {
-  title: "Coco Garden — Cuisine & Livraison",
+  title: `${RESTAURANT_NAME} — Cuisine & Livraison`,
   description: "Gestion de la préparation et de la livraison des commandes",
 };
 
