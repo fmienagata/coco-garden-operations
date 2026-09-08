@@ -1,3 +1,4 @@
+import Settlement from '../../../../lib/models/Settlement';
 import Order from '../../../../lib/models/Order';
 import { connectMongo } from '../../../../lib/db/mongo';
 import { cookies } from 'next/headers';
@@ -16,6 +17,8 @@ export async function POST(request: Request) {
   if (patch.status && !['pending', 'confirmed', 'preparing', 'ready', 'driver_assigned', 'in_delivery', 'delivered'].includes(patch.status)) {
     return Response.json({ error: 'Invalid status' }, { status: 400 });
   }
+  const recorded = await Settlement.findOne({ restaurantId: session.restaurantId, orderId: String(id) }).lean() as { collectedAt?: Date } | null;
+  if (recorded && (recorded.collectedAt || Object.keys(patch).some(key => key !== 'status'))) return Response.json({ error: 'Les données de cette commande sont protégées par son historique de pilotage.' }, { status: 409 });
   Object.assign(order, patch);
   await order.save();
   return Response.json(order.toObject());

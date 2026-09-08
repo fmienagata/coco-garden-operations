@@ -5,6 +5,10 @@ import "./menu.css";
 import "./delivery.css";
 import "./ui-pro.css";
 import "./delivery-polish.css";
+import "./notifications.css";
+import "./restaurant-contact.css";
+import RestaurantContact from '../components/RestaurantContact';
+import ModuleNavigation from '../components/ModuleNavigation';
 import { RESTAURANT_NAME } from '../lib/restaurant';
 
 export const metadata: Metadata = {
@@ -13,5 +17,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="fr"><body>{children}</body></html>;
+  return <html lang="fr"><body><ModuleNavigation />{children}<RestaurantContact /></body></html>;
 }

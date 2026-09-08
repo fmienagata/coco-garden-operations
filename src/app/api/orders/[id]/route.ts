@@ -1,3 +1,4 @@
+import Settlement from '../../../../lib/models/Settlement';
 import Order from '../../../../lib/models/Order';
 import { connectMongo } from '../../../../lib/db/mongo';
 import { cookies } from 'next/headers';
@@ -25,6 +26,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const body = await request.json();
   const order = await Order.findOne({ _id: id, restaurantId: session.restaurantId });
   if (!order) return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+  const recorded = await Settlement.findOne({ restaurantId: session.restaurantId, orderId: String(id) }).lean() as { collectedAt?: Date } | null;
+  if (recorded && (recorded.collectedAt || Object.keys(body).some(key => key !== 'status'))) return Response.json({ error: 'Les données de cette commande sont protégées par son historique de pilotage.' }, { status: 409 });
   Object.assign(order, body);
   await order.save();
   return Response.json(order.toObject());
@@ -40,6 +43,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const all = await Order.find({ restaurantId: session.restaurantId }).lean();
   const found = all.find((d: any) => String(d._id) === String(id));
   if (!found) return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+  if (await Settlement.exists({ restaurantId: session.restaurantId, orderId: String(id) })) return Response.json({ error: 'Une commande avec un historique de pilotage ne peut pas être supprimée.' }, { status: 409 });
   await Order.findByIdAndDelete(found._id);
   return Response.json({ success: true });
 }

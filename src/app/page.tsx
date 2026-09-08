@@ -17,7 +17,7 @@ export default function Home() {
         <p>Le socle de votre espace de gestion est prêt. Les modules métier seront connectés progressivement à votre agent IA.</p>
       </section>
       <section className="grid" aria-label="Modules prévus">
-        {modules.map(([number, title, description]) => <article key={number}><span className="number">{number}</span><h2>{title}</h2><p>{description}</p>{title === 'Livraison' ? <a className="status" href="/livraison">Ouvrir le module</a> : <span className="status">À développer</span>}</article>)}
+        {modules.map(([number, title, description]) => <article key={number}><span className="number">{number}</span><h2>{title}</h2><p>{description}</p>{title === 'Pilotage' ? <a className="status" href="/pilotage">Ouvrir le module</a> : title === 'Livraison' ? <a className="status" href="/livraison">Ouvrir le module</a> : <span className="status">À développer</span>}</article>)}
       </section>
       <footer>Le poste cuisine est disponible. Livraison, notifications et pilotage seront ajoutés ensuite.</footer>
     </main>

@@ -48,10 +48,6 @@ export default function CuisinePage() {
     if (!response.ok) loadOrders();
   }
 
-  async function logout() {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    router.replace('/login');
-  }
 
   async function sendToDriver(order: Order) {
     const driverPhone = order.driverPhone || window.prompt('Numéro WhatsApp du livreur');
@@ -84,9 +80,9 @@ export default function CuisinePage() {
     <main className="kitchen-shell">
       <header className="kitchen-header">
         <div><img className="kitchen-logo" src="/coco-garden-logo.svg" alt={RESTAURANT_NAME} /><p className="eyebrow">{RESTAURANT_NAME} · OPÉRATIONS</p><h1>Poste cuisine</h1></div>
-        <div className="header-actions"><span className="live-indicator">● En direct</span><button className="secondary-button" onClick={() => router.push('/livraison')}>Livraisons</button><button className="secondary-button" onClick={() => router.push('/carte')}>Gérer la carte</button><button className="secondary-button" onClick={logout}>Se déconnecter</button></div>
+        <span className="live-indicator">● En direct</span>
       </header>
-      <section className="kitchen-summary"><div><strong>{orders.length}</strong><span>commandes ouvertes</span></div><button onClick={loadOrders}>Actualiser</button></section>
+      <section className="kitchen-summary"><div><strong>{orders.filter(order => columns.some(column => column.status === order.status)).length}</strong><span>commandes ouvertes</span></div><button onClick={loadOrders}>Actualiser</button></section>
       {error && <p className="form-error">{error}</p>}
       {loading ? <p className="muted">Chargement des commandes…</p> : <section className="order-board">
         {columns.map((column) => {

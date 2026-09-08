@@ -1,3 +1,4 @@
+import Settlement from '../../../../lib/models/Settlement';
 import Order from '../../../../lib/models/Order';
 import { connectMongo } from '../../../../lib/db/mongo';
 import { cookies } from 'next/headers';
@@ -11,6 +12,7 @@ export async function POST(request: Request) {
   const body = await request.json();
   const { id } = body;
   if (!id) return new Response(JSON.stringify({ error: 'id required' }), { status: 400 });
+  if (await Settlement.exists({ restaurantId: session.restaurantId, orderId: String(id) })) return Response.json({ error: 'Une commande avec un historique de pilotage ne peut pas être supprimée.' }, { status: 409 });
   const deleted = await Order.findOneAndDelete({ _id: id, restaurantId: session.restaurantId });
   if (!deleted) return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
   return Response.json({ success: true });

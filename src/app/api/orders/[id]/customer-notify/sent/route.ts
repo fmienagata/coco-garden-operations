@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import Order from '../../../../../../lib/models/Order';
 import { connectMongo } from '../../../../../../lib/db/mongo';
 import { AUTH_COOKIE, getSession } from '../../../../../../lib/auth';
+import { recordSentNotification } from '../../../../../../lib/notifications';
 
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const cookieStore = await cookies();
@@ -13,7 +14,9 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     { _id: id, restaurantId: session.restaurantId, fulfillmentType: 'delivery', status: 'ready', driverMessageSentAt: { $exists: true } },
     { $set: { customerMessageSentAt: new Date() } },
     { new: true },
-  ).lean() as { customerMessageSentAt?: Date } | null;
+  ).lean() as { _id: unknown; orderNumber: string; customerName?: string; customerPhone?: string; customerMessageSentAt?: Date } | null;
   if (!order) return Response.json({ error: 'Driver contact is required first' }, { status: 409 });
+  const message = `Bonjour${order.customerName ? ` ${order.customerName}` : ''}, votre commande ${order.orderNumber} est prête et a été prise en charge par notre livreur. Merci de rester disponible pour la réception.`;
+  await recordSentNotification({ restaurantId: session.restaurantId, orderId: String(order._id), orderNumber: order.orderNumber, recipientType: 'customer', recipientPhone: order.customerPhone || '', message });
   return Response.json({ success: true, customerMessageSentAt: order.customerMessageSentAt });
 }

@@ -1,3 +1,4 @@
+import Settlement from '../../../lib/models/Settlement';
 import Order from '../../../lib/models/Order';
 import { connectMongo } from '../../../lib/db/mongo';
 import { cookies } from 'next/headers';
@@ -11,7 +12,9 @@ export async function GET() {
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   await connectMongo();
   const orders = await Order.find({ restaurantId: session.restaurantId }).sort({ createdAt: -1 }).limit(100).lean();
-  return Response.json(orders);
+  const collected = await Settlement.find({ restaurantId: session.restaurantId, collectedAt: { $exists: true } }).select('orderId').lean() as { orderId: string }[];
+  const collectedIds = new Set(collected.map(item => item.orderId));
+  return Response.json(orders.map(order => collectedIds.has(String(order._id)) && order.status !== 'cancelled' ? { ...order, status: 'collected' } : order));
 }
 
 export async function POST(request: Request) {
