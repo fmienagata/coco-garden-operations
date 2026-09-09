@@ -1,6 +1,6 @@
 export const REPORT_TIMEZONE = 'Africa/Brazzaville';
-export const STATUS_LABELS: Record<string, string> = { pending: 'À confirmer', confirmed: 'Confirmée', preparing: 'En préparation', ready: 'Prête', driver_assigned: 'Livreur affecté', in_delivery: 'En livraison', delivered: 'Livrée', collected: 'Retirée', cancelled: 'Annulée' };
-export type ReportOrder = { _id: string; orderNumber: string; customerName?: string; fulfillmentType: string; total: number; status: string; createdAt: string; deliveredAt?: string; isDemo?: boolean; items: { name: string; qty: number; price: number }[] };
+export const STATUS_LABELS: Record<string, string> = { draft:'Brouillon', served:'Servie', pending: 'À confirmer', confirmed: 'Confirmée', preparing: 'En préparation', ready: 'Prête', driver_assigned: 'Livreur affecté', in_delivery: 'En livraison', delivered: 'Livrée', collected: 'Retirée', completed: 'Terminée', cancelled: 'Annulée' };
+export type ReportOrder = { _id: string; orderNumber: string; customerName?: string; fulfillmentType: string; total: number; status: string; createdAt: string; deliveredAt?: string; servedAt?: string; completedAt?: string; isDemo?: boolean; items: { name: string; qty: number; price: number }[] };
 export type Settlement = { orderId: string; amount?: number; method?: string; paidAt?: string; paidBy?: string; refundedAt?: string; refundedBy?: string; refundReason?: string; collectedAt?: string; collectedBy?: string };
 export function localDay(value: string | Date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: REPORT_TIMEZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(value));
@@ -20,9 +20,9 @@ export function buildReport(orders: ReportOrder[], settlements: Settlement[], fr
   const rows = [];
   for (const order of orders) {
     const settlement = byOrder.get(order._id);
-    const status = order.status === 'cancelled' ? order.status : settlement?.collectedAt ? 'collected' : order.status;
-    const finalized = ['delivered', 'collected'].includes(status);
-    const completedAt = status === 'collected' ? settlement?.collectedAt : order.deliveredAt;
+    const status = order.status === 'cancelled' ? order.status : order.status === 'completed' ? 'completed' : settlement?.collectedAt ? 'collected' : order.status;
+    const finalized = ['completed', 'delivered', 'collected', 'served'].includes(status);
+    const completedAt = status === 'completed' ? order.completedAt || settlement?.collectedAt || order.deliveredAt || order.servedAt : status === 'collected' ? settlement?.collectedAt : status === 'served' ? order.servedAt : order.deliveredAt;
     const createdInPeriod = within(order.createdAt);
     const completedInPeriod = finalized && within(completedAt);
     const paidInPeriod = within(settlement?.paidAt);

@@ -23,6 +23,10 @@ test('une livraison sans date n’est pas attribuée arbitrairement à aujourd�
  const {summary} = buildReport([order({status:'delivered'})], [], '2026-09-08','2026-09-08');
  assert.equal(summary.sales,0); assert.equal(summary.missingCompletionDate,1);
 });
+test('une commande completed est une vente finalisée à sa date de clôture', () => {
+ const result = buildReport([order({status:'completed',completedAt:'2026-09-08T12:00:00Z'})], [], '2026-09-08','2026-09-08');
+ assert.equal(result.summary.sales,1000); assert.equal(result.summary.finalized,1); assert.equal(result.rows[0].status,'completed');
+});
 test('minuit est calculé au fuseau de Pointe-Noire', () => {
  assert.equal(localDay('2026-09-07T23:15:00Z'),'2026-09-08');
  assert.equal(buildReport([order({createdAt:'2026-09-07T23:15:00Z'})], [], '2026-09-08','2026-09-08').summary.orders,1);

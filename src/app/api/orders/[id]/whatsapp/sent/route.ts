@@ -1,12 +1,14 @@
+import { withAudit } from '../../../../../../lib/audit';
 import { cookies } from 'next/headers';
 import Order from '../../../../../../lib/models/Order';
 import { connectMongo } from '../../../../../../lib/db/mongo';
-import { AUTH_COOKIE, getSession } from '../../../../../../lib/auth';
+import { AUTH_COOKIE } from "../../../../../../lib/auth";
+import { getSession } from "../../../../../../lib/server-session";
 import { recordSentNotification } from '../../../../../../lib/notifications';
 
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+async function handlePOST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const cookieStore = await cookies();
-  const session = getSession(cookieStore.get(AUTH_COOKIE)?.value);
+  const session = (await getSession(cookieStore.get(AUTH_COOKIE)?.value));
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   const { driverPhone } = await request.json();
   if (typeof driverPhone !== 'string' || driverPhone.replace(/\D/g, '').length < 8) return Response.json({ error: 'Valid driver phone required' }, { status: 400 });
@@ -23,3 +25,5 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   await recordSentNotification({ restaurantId: session.restaurantId, orderId: String(order._id), orderNumber: order.orderNumber, recipientType: 'driver', recipientPhone: driverPhone, message });
   return Response.json({ success: true, driverPhone: order.driverPhone, driverMessageSentAt: order.driverMessageSentAt });
 }
+
+export const POST = withAudit("POST /api/orders/[id]/whatsapp/sent", handlePOST);

@@ -1,0 +1,6 @@
+import {withAudit} from '../../../../lib/audit';
+import {diningSession,objectId,tableBusy} from '../../../../lib/dining';
+import {userResponse,readBody,UserError} from '../../../../lib/user-management';
+import DiningTable from '../../../../lib/models/DiningTable';
+async function change(request:Request){return userResponse(async()=>{const s=await diningSession();if(s.role!=='admin')throw new UserError('Configuration réservée aux administrateurs.',403);const b=await readBody(request);if(b.id)objectId(b.id);if(!Number.isInteger(b.number)||b.number<1||b.number>999||typeof b.name!=='string'||!b.name.trim()||b.name.length>60||!Number.isInteger(b.capacity)||b.capacity<1||b.capacity>100||typeof b.active!=='boolean')throw new UserError('Numéro, nom, capacité et statut valides requis.');if(b.id&&await tableBusy(s.restaurantId,b.id))throw new UserError('La table est occupée. Terminez les tickets avant de la modifier.',409);const values={number:b.number,name:b.name.trim(),capacity:b.capacity,active:b.active};const table=b.id?await DiningTable.findOneAndUpdate({_id:b.id,restaurantId:s.restaurantId},{$set:values},{new:true}):await DiningTable.create({restaurantId:s.restaurantId,...values});if(!table)throw new UserError('Table introuvable.',404);return Response.json(table,{status:b.id?200:201});});}
+export const POST=withAudit('POST /api/salle/tables',change);

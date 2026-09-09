@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { formatCfa, RESTAURANT_NAME } from '../../lib/restaurant';
+import { formatCfa } from '../../lib/restaurant';
+import ModulePageHeader from '../../components/ModulePageHeader';
 
 type Item = { name: string; itemCode?: string; qty: number; price: number };
 type Status = 'pending' | 'confirmed' | 'preparing' | 'ready';
-type Order = { _id?: string; orderNumber: string; fulfillmentType: 'delivery' | 'takeaway'; tableNumber?: number; customerName?: string; customerPhone?: string; deliveryAddress?: string; deliveryNotes?: string; driverPhone?: string; driverMessageSentAt?: string; customerMessageSentAt?: string; items: Item[]; total: number; status: Status; createdAt?: string };
+type Order = { _id?: string; orderNumber: string; createdByLabel?: string; createdByType?: string; fulfillmentType: 'delivery' | 'takeaway' | 'dine_in'; diningTableId?: string; diningNotes?: string; tableNumber?: number; covers?: number; customerName?: string; customerPhone?: string; deliveryAddress?: string; deliveryNotes?: string; driverPhone?: string; driverMessageSentAt?: string; customerMessageSentAt?: string; items: Item[]; total: number; status: Status; createdAt?: string };
 
 const columns: { status: Status; label: string; action?: string; next?: Status }[] = [
   { status: 'pending', label: 'À confirmer', action: 'Confirmer', next: 'confirmed' },
@@ -77,11 +78,8 @@ export default function CuisinePage() {
   }
 
   return (
-    <main className="kitchen-shell">
-      <header className="kitchen-header">
-        <div><img className="kitchen-logo" src="/coco-garden-logo.svg" alt={RESTAURANT_NAME} /><p className="eyebrow">{RESTAURANT_NAME} · OPÉRATIONS</p><h1>Poste cuisine</h1></div>
-        <span className="live-indicator">● En direct</span>
-      </header>
+    <main id="module-content" tabIndex={-1} className="kitchen-shell">
+      <ModulePageHeader title="Cuisine" description="Suivez la préparation des commandes, de la réception à la remise." actions={<span className="live-indicator">● En direct</span>} />
       <section className="kitchen-summary"><div><strong>{orders.filter(order => columns.some(column => column.status === order.status)).length}</strong><span>commandes ouvertes</span></div><button onClick={loadOrders}>Actualiser</button></section>
       {error && <p className="form-error">{error}</p>}
       {loading ? <p className="muted">Chargement des commandes…</p> : <section className="order-board">
@@ -91,7 +89,8 @@ export default function CuisinePage() {
             <div className="column-heading"><h2>{column.label}</h2><span>{columnOrders.length}</span></div>
             <div className="order-list">{columnOrders.map((order) => <article className="order-card" key={order._id}>
               <div className="order-card-top"><strong>{order.orderNumber}</strong><time>{formatTime(order.createdAt)}</time></div>
-              <div className="order-channel">{order.fulfillmentType === 'delivery' ? 'À livrer' : `À emporter · Table ${order.tableNumber}`}</div>
+              <div className="order-channel">{order.fulfillmentType === 'dine_in' ? `En salle · Table ${order.tableNumber}${order.covers ? ` · ${order.covers} couvert${order.covers > 1 ? 's' : ''}` : ''}` : order.fulfillmentType === 'delivery' ? 'À livrer' : 'À emporter'}</div>
+              {order.diningNotes && <div className="delivery-details"><strong>Consignes salle</strong><span>{order.diningNotes}</span></div>}{order.createdByLabel && <div className="order-actor">Créée par : {order.createdByLabel}</div>}
               {order.fulfillmentType === 'delivery' && <div className="delivery-details"><strong>{order.customerName || 'Client'}</strong><span>{order.customerPhone}</span><span>{order.deliveryAddress}</span>{order.deliveryNotes && <span>{order.deliveryNotes}</span>}<span className={order.driverMessageSentAt ? 'driver-message-sent' : 'driver-message-pending'}>{order.driverMessageSentAt ? `Message envoyé au livreur · ${formatTime(order.driverMessageSentAt)}` : 'Message livreur à envoyer'}</span>{order.customerMessageSentAt && <span className="driver-message-sent">Client informé · {formatTime(order.customerMessageSentAt)}</span>}</div>}
               <ul>{order.items.map((item, index) => <li key={`${item.name}-${index}`}><b>{item.qty}×</b> {item.name}</li>)}</ul>
               <div className="order-card-bottom"><span>{formatCfa(order.total)}</span><div className="order-actions">{order.fulfillmentType === 'delivery' && column.status === 'ready' && <>{<button className="whatsapp-button" onClick={() => sendToDriver(order)}>{order.driverMessageSentAt ? 'Renvoyer WhatsApp' : 'WhatsApp livreur'}</button>}{order.driverMessageSentAt && <button className="customer-button" onClick={() => notifyCustomer(order)}>{order.customerMessageSentAt ? 'Renvoyer client' : 'Notifier le client'}</button>}</>}{column.next && <button onClick={() => updateStatus(order._id, column.next!)}>{column.action}</button>}</div></div>

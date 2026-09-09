@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { RESTAURANT_NAME } from '../../lib/restaurant';
+import ModulePageHeader from '../../components/ModulePageHeader';
 
 type Notification = { _id: string; orderNumber: string; recipientType: 'driver' | 'customer'; recipientPhone: string; message: string; status: 'pending' | 'sent' | 'failed'; attempts: number; sentAt?: string; createdAt: string };
 
@@ -30,8 +30,8 @@ export default function NotificationsPage() {
   }
 
   const filtered = notifications.filter((notification) => filter === 'all' || notification.recipientType === filter);
-  return <main className="notifications-shell">
-    <header className="notifications-header"><div><img className="kitchen-logo" src="/coco-garden-logo.svg" alt={RESTAURANT_NAME} /><p className="eyebrow">{RESTAURANT_NAME} · CENTRE DE NOTIFICATIONS</p><h1>Messages WhatsApp</h1><p className="muted">Historique des messages envoyés par l’équipe management.</p></div></header>
+  return <main id="module-content" tabIndex={-1} className="notifications-shell">
+    <ModulePageHeader title="Notifications" description="Retrouvez les messages WhatsApp envoyés aux clients et aux livreurs." />
     {error && <p className="form-error">{error}</p>}
     <section className="notification-summary"><div><strong>{notifications.length}</strong><span>messages enregistrés</span></div><div><strong>{notifications.filter((item) => item.status === 'sent').length}</strong><span>envoyés</span></div><div><strong>{notifications.filter((item) => item.status !== 'sent').length}</strong><span>à vérifier</span></div></section>
     <nav className="notification-filters" aria-label="Filtrer les notifications"><button className={filter === 'all' ? 'filter-active' : ''} onClick={() => setFilter('all')}>Tous</button><button className={filter === 'driver' ? 'filter-active' : ''} onClick={() => setFilter('driver')}>Livreurs</button><button className={filter === 'customer' ? 'filter-active' : ''} onClick={() => setFilter('customer')}>Clients</button></nav>

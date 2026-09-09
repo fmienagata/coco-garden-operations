@@ -22,6 +22,12 @@ const demoItems = [
   [{ name: 'Bar', qty: 1 }, { name: 'Café expresso', qty: 1 }],
 ];
 const statuses = ['pending', 'pending', 'confirmed', 'confirmed', 'preparing', 'preparing', 'ready', 'ready'];
+const deliveryAddresses = [
+  '12 avenue de la République, Centre-ville, Pointe-Noire',
+  '8 rue Tchikobo, Pointe-Noire',
+  '24 avenue de Loandjili, Pointe-Noire',
+  '5 rue Tié-Tié, Pointe-Noire',
+];
 
 async function main() {
   loadLocalEnv();
@@ -29,6 +35,9 @@ async function main() {
   const restaurantId = process.env.RESTAURANT_ID || 'coco-garden';
   await mongoose.connect(process.env.MONGO_URI);
   const menuCollection = mongoose.connection.collection('menuitems');
+  const zoneCollection = mongoose.connection.collection('deliveryzones');
+  const zones = await zoneCollection.find({ restaurantId, active: true }).sort({ sortOrder: 1 }).toArray();
+  if (!zones.length) throw new Error('At least one active delivery zone is required');
   const menuItems = await menuCollection.find({ restaurantId, active: true }).toArray();
   const menuByName = new Map(menuItems.map((item) => [item.name, item]));
   const normalizedDemoItems = demoItems.map((items) => items.map((item) => {
@@ -38,11 +47,15 @@ async function main() {
   }));
   const orders = normalizedDemoItems.map((items, index) => ({
     restaurantId,
-    tableNumber: index + 1,
+    tableNumber: index % 2 === 0 ? null : index + 1,
+    createdBy: 'demo-seed',
+    createdByType: 'management',
+    createdByLabel: 'Données de démonstration',
+    ...(index % 2 === 0 ? { fulfillmentType: 'delivery', deliveryZoneId: String(zones[(index / 2) % zones.length]._id), deliveryZoneName: zones[(index / 2) % zones.length].name, deliveryFee: zones[(index / 2) % zones.length].fee } : { fulfillmentType: 'takeaway' }),
     items,
-    total: items.reduce((sum, item) => sum + item.price * item.qty, 0),
+    total: items.reduce((sum, item) => sum + item.price * item.qty, 0) + (index % 2 === 0 ? zones[(index / 2) % zones.length].fee : 0),
     status: statuses[index],
-    ...(index % 2 === 0 ? { customerName: `Client ${index + 1}`, customerPhone: `+242 06 000 00 ${String(index + 1).padStart(2, '0')}`, deliveryAddress: `${index + 10}, avenue de la Paix, Brazzaville`, deliveryNotes: index === 0 ? 'Appeler à l’arrivée' : '', driverPhone: '+242060999999' } : {}),
+    ...(index % 2 === 0 ? { customerName: `Client ${index + 1}`, customerPhone: `+242 06 000 00 ${String(index + 1).padStart(2, '0')}`, deliveryAddress: deliveryAddresses[index / 2], deliveryNotes: index === 0 ? 'Appeler à l’arrivée' : '', driverPhone: '+242060999999' } : {}),
     isDemo: true,
     createdAt: new Date(Date.now() - (index + 1) * 7 * 60 * 1000),
     updatedAt: new Date(),
@@ -56,7 +69,12 @@ async function main() {
       if (!order.orderNumber) patch.orderNumber = `CMD-${String(index + 1).padStart(5, '0')}`;
       if (!order.fulfillmentType) patch.fulfillmentType = index % 2 === 0 ? 'delivery' : 'takeaway';
       if (order.fulfillmentType === 'delivery' || patch.fulfillmentType === 'delivery') patch.tableNumber = null;
-      if ((order.fulfillmentType === 'delivery' || patch.fulfillmentType === 'delivery') && !order.customerPhone) Object.assign(patch, { customerName: `Client ${index + 1}`, customerPhone: `+242 06 000 00 ${String(index + 1).padStart(2, '0')}`, deliveryAddress: `${index + 10}, avenue de la Paix, Brazzaville`, deliveryNotes: index === 0 ? 'Appeler à l’arrivée' : '', driverPhone: '+242060999999' });
+      if (order.fulfillmentType === 'delivery' || patch.fulfillmentType === 'delivery') {
+        const zone = zones[(index / 2) % zones.length];
+        Object.assign(patch, { deliveryZoneId: String(zone._id), deliveryZoneName: zone.name, deliveryFee: zone.fee });
+        if (patch.items) patch.total += zone.fee;
+      }
+      if (order.fulfillmentType === 'delivery' || patch.fulfillmentType === 'delivery') Object.assign(patch, { customerName: `Client ${index + 1}`, customerPhone: `+242 06 000 00 ${String(index + 1).padStart(2, '0')}`, deliveryAddress: deliveryAddresses[index / 2], deliveryNotes: index === 0 ? 'Appeler à l’arrivée' : '', driverPhone: '+242060999999' });
       if (Object.keys(patch).length > 0) await collection.updateOne({ _id: order._id }, { $set: patch });
     }
     await mongoose.connection.collection('ordercounters').updateOne(

@@ -1,16 +1,20 @@
+import { withAudit } from '../../../../lib/audit';
 import { cookies } from 'next/headers';
 import MenuItem from '../../../../lib/models/MenuItem';
 import { connectMongo } from '../../../../lib/db/mongo';
-import { AUTH_COOKIE, getSession } from '../../../../lib/auth';
+import { AUTH_COOKIE } from "../../../../lib/auth";
+import { getSession } from "../../../../lib/server-session";
 
 async function getRestaurant() {
   const cookieStore = await cookies();
-  return getSession(cookieStore.get(AUTH_COOKIE)?.value)?.restaurantId;
+  return (await getSession(cookieStore.get(AUTH_COOKIE)?.value))?.restaurantId;
 }
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const restaurantId = await getRestaurant();
-  if (!restaurantId) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+async function handlePUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = (await getSession((await cookies()).get(AUTH_COOKIE)?.value));
+  if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  if (session.role !== 'admin') return Response.json({ error: 'Accès réservé à l’administrateur' }, { status: 403 });
+  const restaurantId = session.restaurantId;
   const { id } = await params;
   const patch = await request.json();
   if (patch.active !== undefined && typeof patch.active !== 'boolean') return Response.json({ error: 'Availability must be a boolean' }, { status: 400 });
@@ -22,12 +26,17 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   return Response.json(item);
 }
 
-export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const restaurantId = await getRestaurant();
-  if (!restaurantId) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+async function handleDELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = (await getSession((await cookies()).get(AUTH_COOKIE)?.value));
+  if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  if (session.role !== 'admin') return Response.json({ error: 'Accès réservé à l’administrateur' }, { status: 403 });
+  const restaurantId = session.restaurantId;
   const { id } = await params;
   await connectMongo();
   const item = await MenuItem.findOneAndDelete({ _id: id, restaurantId });
   if (!item) return Response.json({ error: 'Not found' }, { status: 404 });
   return Response.json({ success: true });
 }
+
+export const PUT = withAudit("PUT /api/menu/[id]", handlePUT);
+export const DELETE = withAudit("DELETE /api/menu/[id]", handleDELETE);

@@ -1,0 +1,8 @@
+import {withAudit} from '../../../../lib/audit';
+import {diningSession,objectId,priceItems,details} from '../../../../lib/dining';
+import {userResponse,readBody,UserError} from '../../../../lib/user-management';
+import DiningTable from '../../../../lib/models/DiningTable';
+import Order from '../../../../lib/models/Order';
+import {getNextOrderNumber} from '../../../../lib/orders';
+async function create(request:Request){return userResponse(async()=>{const s=await diningSession();const b=await readBody(request);if(typeof b.requestKey!=='string'||!/^[-a-zA-Z0-9]{16,80}$/.test(b.requestKey))throw new UserError('Identifiant de requête requis.');const existing=await Order.findOne({restaurantId:s.restaurantId,requestKey:b.requestKey});if(existing)return Response.json(existing);const table=await DiningTable.findOne({_id:objectId(b.tableId),restaurantId:s.restaurantId,active:true});if(!table)throw new UserError('Table indisponible.',404);const info=details(b);if(info.covers>table.capacity)throw new UserError('Le nombre de couverts dépasse la capacité de la table.');const items=await priceItems(s.restaurantId,b.items);const total=items.reduce((n:number,i:any)=>n+i.price*i.qty,0);const order=await Order.create({restaurantId:s.restaurantId,orderNumber:await getNextOrderNumber(s.restaurantId),createdBy:s.login,createdByType:'management',createdByLabel:'Salle · '+s.login,fulfillmentType:'dine_in',diningTableId:String(table._id),tableNumber:table.number,...info,items,total,status:'draft',requestKey:b.requestKey});return Response.json(order,{status:201});});}
+export const POST=withAudit('POST /api/salle/orders',create);

@@ -3,6 +3,13 @@
   "tasks": [
     { "label": "Coco Garden : démarrer", "type": "shell", "command": "npm.cmd run dev", "isBackground": true, "problemMatcher": [] },
     { "label": "Coco Garden : vérifier", "type": "shell", "command": "npm.cmd run typecheck", "problemMatcher": [] },
-    { "label": "Coco Garden : construire", "type": "shell", "command": "npm.cmd run build", "group": "build", "problemMatcher": [] }
+    { "label": "Coco Garden : construire", "type": "shell", "command": "npm.cmd run build", "group": "build", "problemMatcher": [] },
+    { "label": "Coco Garden : seed salle", "type": "shell", "command": "npm.cmd run seed:salle", "problemMatcher": [] },
+    { "label": "Coco Garden : tester salle", "type": "shell", "command": "npm.cmd run test:salle", "problemMatcher": [] }
+    ,{ "label": "Coco Garden : tester commandes", "type": "shell", "command": "npm.cmd run test:orders", "problemMatcher": [] },
+    { "label": "Coco Garden : tester pilotage métier", "type": "shell", "command": "npm.cmd run test:pilotage", "problemMatcher": [] },
+    { "label": "Coco Garden : tester pilotage API", "type": "shell", "command": "npm.cmd run test:pilotage:api", "problemMatcher": [] },
+    { "label": "Coco Garden : tester utilisateurs", "type": "shell", "command": "npm.cmd run test:users", "problemMatcher": [] },
+    { "label": "Coco Garden : tester audit", "type": "shell", "command": "npm.cmd run test:audit", "problemMatcher": [] }
   ]
 }

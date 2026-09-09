@@ -1,12 +1,14 @@
+import { withAudit } from '../../../../lib/audit';
 import Settlement from '../../../../lib/models/Settlement';
 import Order from '../../../../lib/models/Order';
 import { connectMongo } from '../../../../lib/db/mongo';
 import { cookies } from 'next/headers';
-import { AUTH_COOKIE, getSession } from '../../../../lib/auth';
+import { AUTH_COOKIE } from "../../../../lib/auth";
+import { getSession } from "../../../../lib/server-session";
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+async function handleGET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const cookieStore = await cookies();
-  const session = getSession(cookieStore.get(AUTH_COOKIE)?.value);
+  const session = (await getSession(cookieStore.get(AUTH_COOKIE)?.value));
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   await connectMongo();
   const { id } = await params;
@@ -17,15 +19,16 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   return Response.json(found);
 }
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+async function handlePUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const cookieStore = await cookies();
-  const session = getSession(cookieStore.get(AUTH_COOKIE)?.value);
+  const session = (await getSession(cookieStore.get(AUTH_COOKIE)?.value));
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   await connectMongo();
   const { id } = await params;
   const body = await request.json();
   const order = await Order.findOne({ _id: id, restaurantId: session.restaurantId });
   if (!order) return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+  if(order.fulfillmentType==='dine_in') return Response.json({error:'Utilisez le module Salle.'},{status:409});
   const recorded = await Settlement.findOne({ restaurantId: session.restaurantId, orderId: String(id) }).lean() as { collectedAt?: Date } | null;
   if (recorded && (recorded.collectedAt || Object.keys(body).some(key => key !== 'status'))) return Response.json({ error: 'Les données de cette commande sont protégées par son historique de pilotage.' }, { status: 409 });
   Object.assign(order, body);
@@ -33,9 +36,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   return Response.json(order.toObject());
 }
 
-export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+async function handleDELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const cookieStore = await cookies();
-  const session = getSession(cookieStore.get(AUTH_COOKIE)?.value);
+  const session = (await getSession(cookieStore.get(AUTH_COOKIE)?.value));
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   await connectMongo();
   const { id } = await params;
@@ -43,7 +46,12 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const all = await Order.find({ restaurantId: session.restaurantId }).lean();
   const found = all.find((d: any) => String(d._id) === String(id));
   if (!found) return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+  if(found.fulfillmentType==='dine_in') return Response.json({error:'Utilisez l’annulation dans le module Salle.'},{status:409});
   if (await Settlement.exists({ restaurantId: session.restaurantId, orderId: String(id) })) return Response.json({ error: 'Une commande avec un historique de pilotage ne peut pas être supprimée.' }, { status: 409 });
   await Order.findByIdAndDelete(found._id);
   return Response.json({ success: true });
 }
+
+export const GET = withAudit("GET /api/orders/[id]", handleGET);
+export const PUT = withAudit("PUT /api/orders/[id]", handlePUT);
+export const DELETE = withAudit("DELETE /api/orders/[id]", handleDELETE);

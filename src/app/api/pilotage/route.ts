@@ -1,11 +1,13 @@
+import { withAudit } from '../../../lib/audit';
 import { cookies } from 'next/headers';
-import { AUTH_COOKIE, getSession } from '../../../lib/auth';
+import { AUTH_COOKIE } from "../../../lib/auth";
+import { getSession } from "../../../lib/server-session";
 import { connectMongo } from '../../../lib/db/mongo';
 import Order from '../../../lib/models/Order';
 import Settlement from '../../../lib/models/Settlement';
 import { buildReport, localDay, validPeriod, type ReportOrder, type Settlement as SettlementData } from '../../../lib/pilotage';
-export async function GET(request: Request) {
-  const session = getSession((await cookies()).get(AUTH_COOKIE)?.value);
+async function handleGET(request: Request) {
+  const session = (await getSession((await cookies()).get(AUTH_COOKIE)?.value));
   if (!session) return Response.json({ error: 'Connexion requise.' }, { status: 401 });
   const query = new URL(request.url).searchParams;
   const from = query.get('from') || localDay(); const to = query.get('to') || from;
@@ -14,7 +16,7 @@ export async function GET(request: Request) {
     await connectMongo();
     const scope = { restaurantId: session.restaurantId, ...(query.get('demo') === 'true' ? {} : { isDemo: { $ne: true } }) };
     const [orders, settlements] = await Promise.all([
-      Order.find(scope).select('_id orderNumber customerName fulfillmentType total status createdAt deliveredAt isDemo items').lean(),
+      Order.find(scope).select('_id orderNumber customerName fulfillmentType total status createdAt deliveredAt servedAt completedAt isDemo items').lean(),
       Settlement.find({ restaurantId: session.restaurantId }).lean(),
     ]);
     // Serialize Mongo dates and identifiers to a stable API contract.
@@ -22,3 +24,5 @@ export async function GET(request: Request) {
     return Response.json({ ...report, generatedAt: new Date().toISOString() }, { headers: { 'Cache-Control': 'no-store' } });
   } catch { return Response.json({ error: 'Le tableau de bord est indisponible. Réessayez dans un instant.' }, { status: 503 }); }
 }
+
+export const GET = withAudit("GET /api/pilotage", handleGET);

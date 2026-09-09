@@ -32,7 +32,7 @@ if (fs.existsSync(envPath)) {
     // create
     const createRes = await fetch(base + '/api/orders', {
       method: 'POST', headers,
-      body: JSON.stringify({ tableNumber: 99, items: [{ itemCode: menuItem.itemCode, qty: 2, price: 1 }] })
+      body: JSON.stringify({ fulfillmentType: 'takeaway', items: [{ itemCode: menuItem.itemCode, qty: 2, price: 1 }] })
     });
     if (createRes.status !== 201) {
       const text = await createRes.text();
@@ -41,16 +41,24 @@ if (fs.existsSync(envPath)) {
     }
     const created = await createRes.json();
     if (!created._id) fail('Created missing _id');
+    if (created.tableNumber !== undefined) fail('Takeaway order must not be linked to a table');
     if (created.items[0].price !== menuItem.price || created.total !== menuItem.price * 2) fail('Order did not use the menu price');
 
     console.log('Created id:', created._id);
-    // update via POST /api/orders/update
-    const updateRes = await fetch(base + '/api/orders/update', {
+    // Cuisine must follow the preparation workflow and cannot mutate totals.
+    const forbiddenRes = await fetch(base + '/api/orders/update', {
       method: 'POST', headers,
-      body: JSON.stringify({ id: created._id, patch: { status: 'ready' } })
+      body: JSON.stringify({ id: created._id, patch: { total: 1 } })
     });
-    if (updateRes.status !== 200) {
-      const text = await updateRes.text(); console.error('UPDATE error body:', text); fail('Update returned ' + updateRes.status);
+    if (forbiddenRes.status !== 400) fail('Arbitrary order patch was accepted');
+    for (const status of ['confirmed', 'preparing', 'ready']) {
+      const updateRes = await fetch(base + '/api/orders/update', {
+        method: 'POST', headers,
+        body: JSON.stringify({ id: created._id, patch: { status } })
+      });
+      if (updateRes.status !== 200) {
+        const text = await updateRes.text(); console.error('UPDATE error body:', text); fail('Update returned ' + updateRes.status);
+      }
     }
 
     // list and verify status updated

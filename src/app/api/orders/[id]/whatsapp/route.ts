@@ -1,15 +1,17 @@
+import { withAudit } from '../../../../../lib/audit';
 import { cookies } from 'next/headers';
 import Order from '../../../../../lib/models/Order';
 import { connectMongo } from '../../../../../lib/db/mongo';
-import { AUTH_COOKIE, getSession } from '../../../../../lib/auth';
+import { AUTH_COOKIE } from "../../../../../lib/auth";
+import { getSession } from "../../../../../lib/server-session";
 
 function digitsOnly(phone: string) {
   return phone.replace(/\D/g, '');
 }
 
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+async function handlePOST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const cookieStore = await cookies();
-  const session = getSession(cookieStore.get(AUTH_COOKIE)?.value);
+  const session = (await getSession(cookieStore.get(AUTH_COOKIE)?.value));
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { driverPhone } = await request.json();
@@ -42,3 +44,5 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   ].filter(Boolean).join('\n');
   return Response.json({ driverPhone: normalizedDriverPhone, message, whatsappUrl: `https://wa.me/${normalizedDriverPhone}?text=${encodeURIComponent(message)}` });
 }
+
+export const POST = withAudit("POST /api/orders/[id]/whatsapp", handlePOST);

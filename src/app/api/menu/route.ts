@@ -1,15 +1,17 @@
+import { withAudit } from '../../../lib/audit';
 import { cookies } from 'next/headers';
 import MenuItem from '../../../lib/models/MenuItem';
 import { connectMongo } from '../../../lib/db/mongo';
-import { AUTH_COOKIE, getSession } from '../../../lib/auth';
+import { AUTH_COOKIE } from "../../../lib/auth";
+import { getSession } from "../../../lib/server-session";
 import { getNextMenuCode } from '../../../lib/menu';
 
 async function getRestaurant() {
   const cookieStore = await cookies();
-  return getSession(cookieStore.get(AUTH_COOKIE)?.value)?.restaurantId;
+  return (await getSession(cookieStore.get(AUTH_COOKIE)?.value))?.restaurantId;
 }
 
-export async function GET() {
+async function handleGET() {
   const restaurantId = await getRestaurant();
   if (!restaurantId) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   await connectMongo();
@@ -17,8 +19,11 @@ export async function GET() {
   return Response.json(items);
 }
 
-export async function POST(request: Request) {
-  const restaurantId = await getRestaurant();
+async function handlePOST(request: Request) {
+  const session = (await getSession((await cookies()).get(AUTH_COOKIE)?.value));
+  if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  if (session.role !== 'admin') return Response.json({ error: 'Accès réservé à l’administrateur' }, { status: 403 });
+  const restaurantId = session.restaurantId;
   if (!restaurantId) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   const body = await request.json();
   const { category, name, description = '', price, variants = [], imageUrl = '' } = body;
@@ -31,3 +36,6 @@ export async function POST(request: Request) {
   const item = await MenuItem.create({ restaurantId, itemCode, category: category.trim(), name: name.trim(), description, price, variants, imageUrl });
   return Response.json(item.toObject(), { status: 201 });
 }
+
+export const GET = withAudit("GET /api/menu", handleGET);
+export const POST = withAudit("POST /api/menu", handlePOST);

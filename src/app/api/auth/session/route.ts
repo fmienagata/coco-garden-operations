@@ -1,7 +1,12 @@
+import { withAudit } from '../../../../lib/audit';
 import { cookies } from 'next/headers';
-import { AUTH_COOKIE, isValidSession } from '../../../../lib/auth';
+import { AUTH_COOKIE } from "../../../../lib/auth";
+import { getSession } from "../../../../lib/server-session";
 
-export async function GET() {
+async function handleGET() {
   const cookieStore = await cookies();
-  return Response.json({ authenticated: isValidSession(cookieStore.get(AUTH_COOKIE)?.value) });
+  const session = (await getSession(cookieStore.get(AUTH_COOKIE)?.value));
+  return Response.json({ authenticated: Boolean(session), role: session?.role || null, login: session?.login || null });
 }
+
+export const GET = withAudit("GET /api/auth/session", handleGET);

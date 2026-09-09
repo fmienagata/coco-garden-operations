@@ -10,9 +10,14 @@
     "test:pilotage": "node --test tests/test-pilotage.cjs",
     "test:pilotage:api": "node tests/test-pilotage-api.cjs",
     "test:orders": "node tests/test-orders.js",
+    "test:salle": "node tests/test-salle-api.cjs",
     "seed:demo": "node scripts/seed-demo-orders.js",
+    "seed:salle": "node scripts/seed-salle-test-data.js",
     "seed:menu": "node scripts/seed-menu.js",
-    "seed:delivery-zones": "node scripts/seed-delivery-zones.js"
+    "seed:delivery-zones": "node scripts/seed-delivery-zones.js",
+    "test:users": "node tests/test-users-api.cjs",
+    "seed:users": "node scripts/seed-users.js",
+    "test:audit": "node tests/test-audit-api.cjs"
   },
   "dependencies": {
     "next": "^16.3.4",

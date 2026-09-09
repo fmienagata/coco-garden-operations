@@ -1,11 +1,13 @@
+import { withAudit } from '../../../../lib/audit';
 import { cookies } from 'next/headers';
 import Driver from '../../../../lib/models/Driver';
 import { connectMongo } from '../../../../lib/db/mongo';
-import { AUTH_COOKIE, getSession } from '../../../../lib/auth';
+import { AUTH_COOKIE } from "../../../../lib/auth";
+import { getSession } from "../../../../lib/server-session";
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+async function handlePUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const cookieStore = await cookies();
-  const session = getSession(cookieStore.get(AUTH_COOKIE)?.value);
+  const session = (await getSession(cookieStore.get(AUTH_COOKIE)?.value));
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   const { available } = await request.json();
   if (typeof available !== 'boolean') return Response.json({ error: 'Available must be a boolean' }, { status: 400 });
@@ -15,3 +17,5 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   if (!driver) return Response.json({ error: 'Driver not found' }, { status: 404 });
   return Response.json(driver);
 }
+
+export const PUT = withAudit("PUT /api/drivers/[id]", handlePUT);

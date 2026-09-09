@@ -1,8 +1,10 @@
+import { withAudit } from '../../../../lib/audit';
 import { cookies } from 'next/headers';
 import Order from '../../../../lib/models/Order';
 import Driver from '../../../../lib/models/Driver';
 import { connectMongo } from '../../../../lib/db/mongo';
-import { AUTH_COOKIE, getSession } from '../../../../lib/auth';
+import { AUTH_COOKIE } from "../../../../lib/auth";
+import { getSession } from "../../../../lib/server-session";
 
 const transitions: Record<string, { status: string; field?: string }> = {
   assign: { status: 'driver_assigned', field: 'driverAssignedAt' },
@@ -10,9 +12,9 @@ const transitions: Record<string, { status: string; field?: string }> = {
   deliver: { status: 'delivered', field: 'deliveredAt' },
 };
 
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+async function handlePOST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const cookieStore = await cookies();
-  const session = getSession(cookieStore.get(AUTH_COOKIE)?.value);
+  const session = (await getSession(cookieStore.get(AUTH_COOKIE)?.value));
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   const { action, driverId } = await request.json();
   const transition = transitions[action];
@@ -29,8 +31,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   } else if ((action === 'pickup' && order.status !== 'driver_assigned') || (action === 'deliver' && order.status !== 'in_delivery')) {
     return Response.json({ error: 'Invalid delivery transition' }, { status: 409 });
   }
-  order.status = transition.status;
+  order.status = action === 'deliver' ? 'completed' : transition.status;
+  if (action === 'deliver') order.completedAt = new Date();
   (order as unknown as Record<string, unknown>)[transition.field!] = new Date();
   await order.save();
   return Response.json(order.toObject());
 }
+
+export const POST = withAudit("POST /api/delivery/[id]", handlePOST);
