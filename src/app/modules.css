@@ -1,16 +1,19 @@
 /* Shared presentation for the seven operational modules. */
 main:is(.kitchen-shell,.delivery-shell,.menu-shell,.notifications-shell,.pilot-shell,.api-shell,.users-shell) {
-  width: 100%; max-width: 1500px; padding: 32px; font-family: Arial, Helvetica, sans-serif;
+  width: 100%; max-width: 1500px; padding: 24px 32px 32px; font-family: Arial, Helvetica, sans-serif;
 }
 main > .module-page-header {
-  display: flex; align-items: center; justify-content: space-between; gap: 24px;
-  min-height: 132px; margin: 0 0 24px; padding: 0 0 24px; border-bottom: 1px solid var(--line);
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 24px;
+  min-height: 0; margin: 0 0 24px; padding: 0 0 20px; border-bottom: 1px solid var(--line);
 }
 .module-page-header .eyebrow { margin: 0 0 10px; color: var(--ink-soft); font-size: 10px; letter-spacing: 2px; }
 .module-page-header h1 { margin: 0; font-family: Georgia, serif; font-size: clamp(32px,3.4vw,44px); line-height: 1.15; letter-spacing: -1px; color: var(--ink); }
 .module-page-header .muted { max-width: 760px; margin: 10px 0 0; font-size: 14px; line-height: 1.6; }
 .module-page-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; flex-shrink: 0; }
 .module-page-actions .live-indicator { padding: 8px 12px; border-radius: 20px; background: #e4efe6; font-size: 12px; }
+.module-page-header { box-sizing: border-box; border-radius: 0; background: transparent; box-shadow: none; }
+.module-page-header strong { letter-spacing: normal; font-size: inherit; }
+.notifications-shell, .users-shell { padding-top: 24px; }
 main:is(.kitchen-shell,.delivery-shell,.menu-shell,.notifications-shell,.pilot-shell,.api-shell,.users-shell) :is(input,select,textarea) { max-width: 100%; min-width: 0; font-family: inherit; }
 main:is(.kitchen-shell,.delivery-shell,.menu-shell,.notifications-shell,.pilot-shell,.api-shell,.users-shell) button { font-family: inherit; }
 .kitchen-shell .kitchen-summary { margin: 0 0 24px; padding: 18px 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: none; }

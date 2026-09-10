@@ -46,7 +46,6 @@ export default function ModuleNavigation() {
     finally { setBusy(false); }
   }
   return <div className="module-bar" onKeyDown={event => { if (event.key === 'Escape' && open) { setOpen(false); toggle.current?.focus(); } }}>
-    {current && <a className="module-skip" href="#module-content">Aller au contenu</a>}
     <div className="module-bar__inner">
       <Link href={role ? `/${ROLE_MODULES[role][0]}` : "/"} className="module-brand" aria-label={`${RESTAURANT_NAME} — Accueil équipe`}><span className="module-brand__mark" aria-hidden="true">CG</span><span>{RESTAURANT_NAME}<small>Espace équipe</small></span></Link>
       <button ref={toggle} className="module-toggle" type="button" aria-expanded={open} aria-controls="module-links" onClick={() => setOpen(value => !value)}><span>{current?.label || 'Menu'}</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d={open ? 'M6 6l12 12M6 18L18 6' : 'M4 6h16M4 12h16M4 18h16'} /></svg><span className="module-sr-only">{open ? 'Fermer le menu' : 'Ouvrir le menu'}</span></button>

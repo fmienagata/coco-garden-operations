@@ -8,7 +8,7 @@ import ModulePageHeader from '../../components/ModulePageHeader';
 type Driver = { _id: string; name: string; phone: string; active: boolean; available: boolean };
 type Zone = { _id: string; name: string; fee: number; active: boolean };
 type Order = { _id: string; orderNumber: string; status: string; fulfillmentType: 'delivery' | 'takeaway'; customerName?: string; customerPhone?: string; deliveryAddress?: string; deliveryZoneName?: string; deliveryFee?: number; total: number; items: { name: string; qty: number }[]; driverName?: string; driverPhone?: string };
-const stages = [{ status: 'ready', label: 'Prêtes' }, { status: 'driver_assigned', label: 'Livreur affecté' }, { status: 'in_delivery', label: 'En livraison' }, { status: 'delivered', label: 'Livrées (ancien)' }, { status: 'completed', label: 'Terminées' }];
+const stages = [{ status: 'ready', label: 'Prêtes' }, { status: 'driver_assigned', label: 'Livreur affecté' }, { status: 'in_delivery', label: 'En livraison' }, { status: 'completed', label: 'Terminées' }];
 
 export default function DeliveryPage() {
   const router = useRouter();

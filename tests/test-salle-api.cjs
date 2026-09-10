@@ -6,6 +6,8 @@ require('@next/env').loadEnvConfig(process.cwd());
 const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:3001';
 let createdTableId;
 let createdOrderId;
+let createdServerId;
+let createdServerLogin;
 
 async function call(path, method = 'GET', body, cookie = '') {
   const headers = { 'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}) };
@@ -29,6 +31,18 @@ async function call(path, method = 'GET', body, cookie = '') {
   assert.equal(login.status, 200, 'Connexion admin impossible');
   const adminCookie = login.cookie;
   assert.ok(adminCookie, 'Cookie de session admin absent');
+
+  createdServerLogin = 'salle-serveur-' + crypto.randomBytes(5).toString('hex');
+  const serverPassword = 'ServeurTest2026!';
+  const server = await call('/api/users', 'POST', { login: createdServerLogin, name: 'Serveur test Salle', password: serverPassword, role: 'serveur' }, adminCookie);
+  assert.equal(server.status, 201, `Création du compte serveur échouée: ${JSON.stringify(server.data)}`);
+  createdServerId = String(server.data._id);
+  const serverLogin = await call('/api/auth/login', 'POST', { login: createdServerLogin, password: serverPassword });
+  assert.equal(serverLogin.status, 200, 'Connexion du serveur impossible');
+  const serverSalle = await call('/api/salle', 'GET', undefined, serverLogin.cookie);
+  assert.equal(serverSalle.status, 200, 'Le profil serveur doit accéder à la salle');
+  const serverTableConfig = await call('/api/salle/tables', 'POST', { number: 998, name: 'Interdit serveur', capacity: 2, active: true }, serverLogin.cookie);
+  assert.equal(serverTableConfig.status, 403, 'Le profil serveur ne doit pas configurer les tables');
 
   const salle = await call('/api/salle', 'GET', undefined, adminCookie);
   assert.equal(salle.status, 200, 'GET /api/salle a échoué');
@@ -103,6 +117,7 @@ async function call(path, method = 'GET', body, cookie = '') {
       if (createdOrderId) await mongoose.connection.collection('orders').deleteOne({ _id: new mongoose.Types.ObjectId(createdOrderId) });
       if (createdOrderId) await mongoose.connection.collection('settlements').deleteOne({ orderId: createdOrderId });
       if (createdTableId) await mongoose.connection.collection('diningtables').deleteOne({ _id: new mongoose.Types.ObjectId(createdTableId) });
+      if (createdServerId) await mongoose.connection.collection('users').deleteOne({ _id: new mongoose.Types.ObjectId(createdServerId), login: createdServerLogin });
       await mongoose.disconnect();
     } catch (error) {
       console.warn('Nettoyage Salle ignoré', error.message);

@@ -11,5 +11,6 @@
     { "label": "Coco Garden : tester pilotage API", "type": "shell", "command": "npm.cmd run test:pilotage:api", "problemMatcher": [] },
     { "label": "Coco Garden : tester utilisateurs", "type": "shell", "command": "npm.cmd run test:users", "problemMatcher": [] },
     { "label": "Coco Garden : tester audit", "type": "shell", "command": "npm.cmd run test:audit", "problemMatcher": [] }
+    ,{ "label": "Coco Garden : migrer commandes terminées", "type": "shell", "command": "npm.cmd run migrate:completed", "problemMatcher": [] }
   ]
 }

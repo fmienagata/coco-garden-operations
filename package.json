@@ -13,6 +13,7 @@
     "test:salle": "node tests/test-salle-api.cjs",
     "seed:demo": "node scripts/seed-demo-orders.js",
     "seed:salle": "node scripts/seed-salle-test-data.js",
+    "migrate:completed": "node scripts/migrate-completed-orders.js",
     "seed:menu": "node scripts/seed-menu.js",
     "seed:delivery-zones": "node scripts/seed-delivery-zones.js",
     "test:users": "node tests/test-users-api.cjs",
