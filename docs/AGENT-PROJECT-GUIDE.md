@@ -47,8 +47,27 @@ Avant de terminer une modification, exécuter au minimum :
 
 ```powershell
 npm.cmd run typecheck
+npm.cmd run guards
+npm.cmd run format:check
 npm.cmd run build
 ```
+
+`npm.cmd run guards` vérifie des règles d'architecture, pas du style. Chacune correspond à
+une faille réellement trouvée ici : recopie d'un corps de requête dans un document, `$set`
+d'un corps reçu tel quel, lecture de corps sans garde, balayage complet de collection, route
+sans contrôle d'accès serveur, mutation non auditée, repli silencieux sur `AUTH_SECRET`.
+Ajoutez-y une règle chaque fois qu'un défaut de cette nature est corrigé.
+
+`npm.cmd run format` applique Prettier. La documentation en est exclue : c'est de la prose
+relue à la main que le formateur réenroulerait sans gain.
+
+**ESLint n'est pas utilisé.** `eslint-config-next` dépend de `typescript-eslint`, qui refuse
+de démarrer sur TypeScript 7 — la version du projet. Il a été installé puis retiré plutôt
+que de laisser un outillage cassé. À reprendre quand l'amont aura rattrapé.
+
+`.github/workflows/ci.yml` joue l'ensemble à chaque poussée et chaque demande de fusion :
+contrôles statiques, suites unitaires, construction, puis les suites d'intégration contre un
+MongoDB de service.
 
 Tests fonctionnels disponibles :
 
