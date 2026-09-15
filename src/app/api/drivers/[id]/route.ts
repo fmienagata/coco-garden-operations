@@ -1,21 +1,21 @@
 import { withAudit } from '../../../../lib/audit';
-import { cookies } from 'next/headers';
+import mongoose from 'mongoose';
 import Driver from '../../../../lib/models/Driver';
 import { connectMongo } from '../../../../lib/db/mongo';
-import { AUTH_COOKIE } from "../../../../lib/auth";
-import { getSession } from "../../../../lib/server-session";
+import { requireSession, readJson, apiResponse, UserError } from '../../../../lib/api';
 
 async function handlePUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const cookieStore = await cookies();
-  const session = (await getSession(cookieStore.get(AUTH_COOKIE)?.value));
-  if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  const { available } = await request.json();
-  if (typeof available !== 'boolean') return Response.json({ error: 'Available must be a boolean' }, { status: 400 });
-  await connectMongo();
-  const { id } = await params;
-  const driver = await Driver.findOneAndUpdate({ _id: id, restaurantId: session.restaurantId }, { $set: { available } }, { new: true }).lean();
-  if (!driver) return Response.json({ error: 'Driver not found' }, { status: 404 });
-  return Response.json(driver);
+  return apiResponse(async () => {
+    const session = await requireSession({ module: 'livraison' });
+    const { available } = await readJson(request);
+    if (typeof available !== 'boolean') throw new UserError('Available must be a boolean');
+    const { id } = await params;
+    if (!mongoose.isValidObjectId(id)) throw new UserError('Identifiant invalide.');
+    await connectMongo();
+    const driver = await Driver.findOneAndUpdate({ _id: id, restaurantId: session.restaurantId }, { $set: { available } }, { new: true }).lean();
+    if (!driver) throw new UserError('Driver not found', 404);
+    return Response.json(driver);
+  });
 }
 
 export const PUT = withAudit("PUT /api/drivers/[id]", handlePUT);

@@ -1,20 +1,10 @@
-import { cookies } from 'next/headers';
-import { AUTH_COOKIE } from './auth';
-import { getSession } from './server-session';
+import { requireSession, readJson, apiResponse, UserError } from './api';
+export { UserError };
 export const userFields = '_id login name role active authType createdAt updatedAt';
-export class UserError extends Error { constructor(message: string, public status = 400) { super(message); } }
 export async function requireAdmin() {
-  const session = await getSession((await cookies()).get(AUTH_COOKIE)?.value);
-  if (!session) throw new UserError('Veuillez vous reconnecter.', 401);
-  if (session.role !== 'admin') throw new UserError('Accès réservé à l’administrateur.', 403);
-  return session;
+  return requireSession({ roles: ['admin'], message: 'Accès réservé à l’administrateur.' });
 }
-export async function readBody(request: Request) {
-  let body;
-  try { body = await request.json(); } catch { throw new UserError('Données JSON invalides.'); }
-  if (!body || typeof body !== 'object' || Array.isArray(body)) throw new UserError('Données invalides.');
-  return body;
-}
+export const readBody = readJson;
 export function validateAccount(body: any, creating = false) {
   if (creating || body.name !== undefined) {
     if (typeof body.name !== 'string' || !body.name.trim() || body.name.length > 100) throw new UserError('Le nom est requis (100 caractères maximum).');
@@ -28,11 +18,4 @@ export function validateAccount(body: any, creating = false) {
     if (typeof body.password !== 'string' || body.password.length < 8 || body.password.length > 128) throw new UserError('Le mot de passe doit contenir entre 8 et 128 caractères.');
   }
 }
-export async function userResponse(action: () => Promise<Response>) {
-  try { return await action(); } catch (error: any) {
-    if (error instanceof UserError) return Response.json({error: error.message}, {status:error.status});
-    if (error?.code === 11000) return Response.json({error:'Cet identifiant est déjà utilisé.'}, {status:409});
-    console.error('User management failure', error);
-    return Response.json({error:'Opération impossible. Veuillez réessayer.'}, {status:500});
-  }
-}
+export const userResponse = apiResponse;

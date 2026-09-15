@@ -1,14 +1,12 @@
 import { withAudit } from '../../../../lib/audit';
-import { cookies } from 'next/headers';
 import mongoose from 'mongoose';
-import { AUTH_COOKIE } from "../../../../lib/auth";
-import { getSession } from "../../../../lib/server-session";
+import { requireSession, apiResponse, UserError } from '../../../../lib/api';
 import { connectMongo } from '../../../../lib/db/mongo';
 import Order from '../../../../lib/models/Order';
 import Settlement from '../../../../lib/models/Settlement';
 async function handlePOST(request: Request) {
-  const session = (await getSession((await cookies()).get(AUTH_COOKIE)?.value));
-  if (!session) return Response.json({ error: 'Connexion requise.' }, { status: 401 });
+  return apiResponse(async () => {
+  const session = await requireSession({ module: 'pilotage' });
   const origin = request.headers.get('origin');
   if (origin) {
     const requestUrl = new URL(request.url);
@@ -17,7 +15,7 @@ async function handlePOST(request: Request) {
       allowedOrigins.add('http://localhost:3001');
       allowedOrigins.add('http://127.0.0.1:3001');
     }
-    if (!allowedOrigins.has(origin)) return Response.json({ error: 'Origine non autorisée.' }, { status: 403 });
+    if (!allowedOrigins.has(origin)) throw new UserError('Origine non autorisée.', 403);
   }
   const body = await request.json().catch(() => null);
   if (!body || !mongoose.isValidObjectId(body.orderId) || !['pay', 'refund', 'collect'].includes(body.action)) return Response.json({ error: 'Action invalide.' }, { status: 400 });
@@ -46,7 +44,11 @@ async function handlePOST(request: Request) {
     if (!result) return Response.json({ error: 'Action déjà enregistrée ou encaissement absent. Actualisez le tableau.' }, { status: 409 });
     if (body.action === 'collect') await Order.updateOne({ _id: body.orderId, restaurantId: session.restaurantId, fulfillmentType: 'takeaway', status: 'ready' }, { $set: { status: 'completed', completedAt: now } });
     return Response.json({ success: true });
-  } catch { return Response.json({ error: 'Enregistrement impossible. Actualisez avant de réessayer.' }, { status: 503 }); }
+  } catch (error) {
+    if (error instanceof UserError) throw error;
+    return Response.json({ error: 'Enregistrement impossible. Actualisez avant de réessayer.' }, { status: 503 });
+  }
+  });
 }
 
 export const POST = withAudit("POST /api/pilotage/actions", handlePOST);

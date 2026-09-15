@@ -1,41 +1,50 @@
 import { withAudit } from '../../../../lib/audit';
-import { cookies } from 'next/headers';
+import mongoose from 'mongoose';
 import Order from '../../../../lib/models/Order';
 import Driver from '../../../../lib/models/Driver';
 import { connectMongo } from '../../../../lib/db/mongo';
-import { AUTH_COOKIE } from "../../../../lib/auth";
-import { getSession } from "../../../../lib/server-session";
+import { requireSession, readJson, apiResponse, UserError } from '../../../../lib/api';
 
-const transitions: Record<string, { status: string; field?: string }> = {
-  assign: { status: 'driver_assigned', field: 'driverAssignedAt' },
-  pickup: { status: 'in_delivery', field: 'pickedUpAt' },
-  deliver: { status: 'delivered', field: 'deliveredAt' },
+// `from` rend le statut de départ explicite et sert de garde atomique à la mise à jour.
+const transitions: Record<string, { from: string; status: string; field: string }> = {
+  assign: { from: 'ready', status: 'driver_assigned', field: 'driverAssignedAt' },
+  pickup: { from: 'driver_assigned', status: 'in_delivery', field: 'pickedUpAt' },
+  deliver: { from: 'in_delivery', status: 'completed', field: 'deliveredAt' },
 };
 
 async function handlePOST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const cookieStore = await cookies();
-  const session = (await getSession(cookieStore.get(AUTH_COOKIE)?.value));
-  if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  const { action, driverId } = await request.json();
-  const transition = transitions[action];
-  if (!transition) return Response.json({ error: 'Invalid delivery action' }, { status: 400 });
-  await connectMongo();
-  const { id } = await params;
-  const order = await Order.findOne({ _id: id, restaurantId: session.restaurantId, fulfillmentType: 'delivery' });
-  if (!order) return Response.json({ error: 'Delivery order not found' }, { status: 404 });
-  if (action === 'assign') {
-    const driver = await Driver.findOne({ _id: driverId, restaurantId: session.restaurantId, active: true, available: true });
-    if (!driver) return Response.json({ error: 'Active driver not found' }, { status: 400 });
-    if (order.status !== 'ready') return Response.json({ error: 'Only ready orders can be assigned' }, { status: 409 });
-    order.driverId = String(driver._id); order.driverName = driver.name; order.driverPhone = driver.phone;
-  } else if ((action === 'pickup' && order.status !== 'driver_assigned') || (action === 'deliver' && order.status !== 'in_delivery')) {
-    return Response.json({ error: 'Invalid delivery transition' }, { status: 409 });
-  }
-  order.status = action === 'deliver' ? 'completed' : transition.status;
-  if (action === 'deliver') order.completedAt = new Date();
-  (order as unknown as Record<string, unknown>)[transition.field!] = new Date();
-  await order.save();
-  return Response.json(order.toObject());
+  return apiResponse(async () => {
+    const session = await requireSession({ module: 'livraison' });
+    const { action, driverId } = await readJson(request);
+    const transition = transitions[action];
+    if (!transition) throw new UserError('Invalid delivery action');
+    const { id } = await params;
+    if (!mongoose.isValidObjectId(id)) throw new UserError('Identifiant invalide.');
+    await connectMongo();
+    const order = await Order.findOne({ _id: id, restaurantId: session.restaurantId, fulfillmentType: 'delivery' }).lean() as { _id: unknown; status: string; __v: number } | null;
+    if (!order) throw new UserError('Delivery order not found', 404);
+    if (order.status !== transition.from) throw new UserError(action === 'assign' ? 'Only ready orders can be assigned' : 'Invalid delivery transition', 409);
+
+    const now = new Date();
+    const changes: Record<string, unknown> = { status: transition.status, [transition.field]: now };
+    if (action === 'assign') {
+      const driver = await Driver.findOne({ _id: mongoose.isValidObjectId(driverId) ? driverId : null, restaurantId: session.restaurantId, active: true, available: true }).lean() as { _id: unknown; name: string; phone: string } | null;
+      if (!driver) throw new UserError('Active driver not found');
+      changes.driverId = String(driver._id);
+      changes.driverName = driver.name;
+      changes.driverPhone = driver.phone;
+    }
+    if (action === 'deliver') changes.completedAt = now;
+
+    // Deux affectations simultanées ne doivent pas s'écraser : la condition porte sur le statut et sur __v.
+    const updated = await Order.findOneAndUpdate(
+      { _id: order._id, restaurantId: session.restaurantId, status: transition.from, __v: order.__v },
+      { $set: changes, $inc: { __v: 1 } },
+      { new: true },
+    ).lean();
+    if (!updated) throw new UserError('Livraison modifiée entre-temps. Actualisez avant de réessayer.', 409);
+    return Response.json(updated);
+  });
 }
 
 export const POST = withAudit("POST /api/delivery/[id]", handlePOST);

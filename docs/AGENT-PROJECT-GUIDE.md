@@ -59,6 +59,8 @@ npm.cmd run test:pilotage
 npm.cmd run test:pilotage:api
 npm.cmd run test:users
 npm.cmd run test:audit
+npm.cmd run test:roles
+npm.cmd run test:auth
 ```
 
 Les tâches équivalentes sont disponibles dans `.vscode/tasks.json`.
@@ -85,6 +87,38 @@ Les routes serveur doivent toujours dériver `restaurantId` de la session ou de 
 - `whatsapp-agent` : compte technique API, création de commandes uniquement avec `x-whatsapp-agent-token`.
 
 Les droits doivent être vérifiés côté serveur, même si la navigation masque déjà les modules interdits.
+
+### Contrôle des droits dans les routes API
+
+`src/lib/api.ts` porte le socle commun : `requireSession`, `readJson` et `apiResponse`.
+
+`requireSession({ module })` s'appuie sur `ROLE_MODULES` (`src/lib/auth.ts`), la même table que la
+navigation : une seule matrice pour l'interface et pour l'API, impossible à désynchroniser.
+`requireSession({ roles })` sert aux actions qui ne correspondent à aucun module : configuration
+et suppression.
+
+| Route | Contrôle |
+| --- | --- |
+| `GET /api/orders`, `/api/orders/update`, `/api/orders/[id]`, notifications WhatsApp | module `cuisine` |
+| `POST /api/orders` | `admin` + `serveur`, ou l'Agent WhatsApp par en-tête |
+| `DELETE /api/orders/[id]`, `POST /api/orders/delete` | `admin` |
+| `POST /api/delivery/[id]`, `GET /api/drivers`, `PUT /api/drivers/[id]` | module `livraison` |
+| `POST /api/drivers`, `/api/menu` en écriture, `/api/delivery-zones` en écriture | `admin` |
+| `GET /api/menu`, `GET /api/delivery-zones` | session seule : données de référence |
+| `/api/notifications` | module `notifications` |
+| `/api/pilotage`, `/api/pilotage/actions` | module `pilotage` |
+| `/api/salle/**` | module `salle` ; `POST /api/salle/tables` en plus `admin` |
+| `/api/users`, `/api/audit` | `admin` |
+
+Règles à tenir pour toute nouvelle route :
+
+- passer par `requireSession`, jamais par `cookies()` et `getSession` directement ;
+- lire le corps avec `readJson`, qui rend 400 sur un JSON invalide au lieu de 500 ;
+- envelopper le handler dans `apiResponse`, qui traduit `UserError` et masque les erreurs internes ;
+- pour une mise à jour, énumérer les champs autorisés ; `$set` d'un corps reçu tel quel permet
+  d'écrire `restaurantId` et de sortir la donnée du tenant.
+
+Le test `npm.cmd run test:roles` vérifie cette matrice de bout en bout.
 
 ## Cycle d'une commande
 

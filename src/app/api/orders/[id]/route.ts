@@ -3,42 +3,37 @@ import mongoose from 'mongoose';
 import Settlement from '../../../../lib/models/Settlement';
 import Order from '../../../../lib/models/Order';
 import { connectMongo } from '../../../../lib/db/mongo';
-import { cookies } from 'next/headers';
-import { AUTH_COOKIE } from "../../../../lib/auth";
-import { getSession } from "../../../../lib/server-session";
+import { requireSession, apiResponse, UserError } from '../../../../lib/api';
 
 // Aucune écriture libre ici : le workflow de préparation passe par POST /api/orders/update,
 // la Salle par PATCH /api/salle/orders/[id], et la caisse par POST /api/pilotage/actions.
 
-async function resolve(params: Promise<{ id: string }>, restaurantId: string) {
+async function findOrder(params: Promise<{ id: string }>, restaurantId: string) {
   const { id } = await params;
-  if (!mongoose.isValidObjectId(id)) return { id, order: null as Record<string, unknown> | null, invalid: true };
+  if (!mongoose.isValidObjectId(id)) throw new UserError('Identifiant invalide.');
   await connectMongo();
   const order = await Order.findOne({ _id: id, restaurantId }).lean() as Record<string, unknown> | null;
-  return { id, order, invalid: false };
+  if (!order) throw new UserError('Not found', 404);
+  return { id, order };
 }
 
 async function handleGET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const cookieStore = await cookies();
-  const session = (await getSession(cookieStore.get(AUTH_COOKIE)?.value));
-  if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  const { order, invalid } = await resolve(params, session.restaurantId);
-  if (invalid) return Response.json({ error: 'Identifiant invalide.' }, { status: 400 });
-  if (!order) return Response.json({ error: 'Not found' }, { status: 404 });
-  return Response.json(order);
+  return apiResponse(async () => {
+    const session = await requireSession({ module: 'cuisine' });
+    const { order } = await findOrder(params, session.restaurantId);
+    return Response.json(order);
+  });
 }
 
 async function handleDELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const cookieStore = await cookies();
-  const session = (await getSession(cookieStore.get(AUTH_COOKIE)?.value));
-  if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  const { id, order, invalid } = await resolve(params, session.restaurantId);
-  if (invalid) return Response.json({ error: 'Identifiant invalide.' }, { status: 400 });
-  if (!order) return Response.json({ error: 'Not found' }, { status: 404 });
-  if (order.fulfillmentType === 'dine_in') return Response.json({ error: 'Utilisez l’annulation dans le module Salle.' }, { status: 409 });
-  if (await Settlement.exists({ restaurantId: session.restaurantId, orderId: String(id) })) return Response.json({ error: 'Une commande avec un historique de pilotage ne peut pas être supprimée.' }, { status: 409 });
-  await Order.deleteOne({ _id: id, restaurantId: session.restaurantId });
-  return Response.json({ success: true });
+  return apiResponse(async () => {
+    const session = await requireSession({ roles: ['admin'], message: 'La suppression d’une commande est réservée à l’administrateur.' });
+    const { id, order } = await findOrder(params, session.restaurantId);
+    if (order.fulfillmentType === 'dine_in') throw new UserError('Utilisez l’annulation dans le module Salle.', 409);
+    if (await Settlement.exists({ restaurantId: session.restaurantId, orderId: String(id) })) throw new UserError('Une commande avec un historique de pilotage ne peut pas être supprimée.', 409);
+    await Order.deleteOne({ _id: id, restaurantId: session.restaurantId });
+    return Response.json({ success: true });
+  });
 }
 
 export const GET = withAudit("GET /api/orders/[id]", handleGET);

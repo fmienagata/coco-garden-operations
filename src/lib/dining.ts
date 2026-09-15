@@ -1,12 +1,9 @@
-import {cookies} from 'next/headers';
 import mongoose from 'mongoose';
-import {AUTH_COOKIE} from './auth';
-import {getSession} from './server-session';
-import {UserError} from './user-management';
+import {requireSession, UserError} from './api';
 import MenuItem from './models/MenuItem';
 import Order from './models/Order';
 import Settlement from './models/Settlement';
-export async function diningSession(){const session=await getSession((await cookies()).get(AUTH_COOKIE)?.value);if(!session)throw new UserError('Connexion requise.',401);if(!['admin','serveur'].includes(session.role))throw new UserError('Accès réservé aux serveurs et administrateurs.',403);return session;}
+export async function diningSession(){return requireSession({module:'salle',message:'Accès réservé aux serveurs et administrateurs.'});}
 export function objectId(id:unknown){if(typeof id!=='string'||!mongoose.isValidObjectId(id))throw new UserError('Identifiant invalide.');return id;}
 export async function priceItems(restaurantId:string,items:any){if(!Array.isArray(items)||items.length<1||items.length>80)throw new UserError('Ajoutez entre 1 et 80 lignes.');const menu=await MenuItem.find({restaurantId,active:true}).lean() as any[];return items.map((line:any)=>{if(!line||typeof line.itemCode!=='string'||!Number.isInteger(line.qty)||line.qty<1||line.qty>99)throw new UserError('Plat ou quantité invalide.');const item=menu.find(m=>m.itemCode===line.itemCode);if(!item)throw new UserError('Un plat est indisponible. Actualisez la carte.');const variants=Array.isArray(item.variants)?item.variants:[];const variant=line.variant?variants.find((v:any)=>v.label===line.variant):null;if(line.variant&&!variant)throw new UserError('Variante indisponible.');if(variants.length&&!variant)throw new UserError('Choisissez une variante pour '+item.name);return {variant:variant?.label,itemCode:item.itemCode,name:item.name+(variant?' · '+variant.label:''),qty:line.qty,price:variant?variant.price:item.price};});}
 export function details(body:any){if(!Number.isInteger(body.covers)||body.covers<1||body.covers>100)throw new UserError('Nombre de couverts invalide.');const notes=typeof body.notes==='string'?body.notes:typeof body.diningNotes==='string'?body.diningNotes:'';if(notes.length>500)throw new UserError('Consignes : 500 caractères maximum.');return {covers:body.covers,diningNotes:notes.trim()};}

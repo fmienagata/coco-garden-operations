@@ -1,29 +1,25 @@
 import { withAudit } from '../../../lib/audit';
-import { cookies } from 'next/headers';
 import Driver from '../../../lib/models/Driver';
 import { connectMongo } from '../../../lib/db/mongo';
-import { AUTH_COOKIE } from "../../../lib/auth";
-import { getSession } from "../../../lib/server-session";
-
-async function restaurantId() {
-  const cookieStore = await cookies();
-  return (await getSession(cookieStore.get(AUTH_COOKIE)?.value))?.restaurantId;
-}
+import { requireSession, readJson, apiResponse, UserError } from '../../../lib/api';
 
 async function handleGET() {
-  const id = await restaurantId();
-  if (!id) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  await connectMongo();
-  return Response.json(await Driver.find({ restaurantId: id }).sort({ available: -1, active: -1, name: 1 }).lean());
+  return apiResponse(async () => {
+    const session = await requireSession({ module: 'livraison' });
+    await connectMongo();
+    return Response.json(await Driver.find({ restaurantId: session.restaurantId }).sort({ available: -1, active: -1, name: 1 }).lean());
+  });
 }
 
 async function handlePOST(request: Request) {
-  const id = await restaurantId();
-  if (!id) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  const { name, phone } = await request.json();
-  if (typeof name !== 'string' || !name.trim() || typeof phone !== 'string' || phone.replace(/\D/g, '').length < 8) return Response.json({ error: 'Name and valid phone are required' }, { status: 400 });
-  await connectMongo();
-  return Response.json(await Driver.create({ restaurantId: id, name: name.trim(), phone: phone.trim(), available: true }), { status: 201 });
+  return apiResponse(async () => {
+    // Enregistrer un livreur est une configuration, au même titre que la carte ou les tables.
+    const session = await requireSession({ roles: ['admin'], message: 'Configuration réservée aux administrateurs.' });
+    const { name, phone } = await readJson(request);
+    if (typeof name !== 'string' || !name.trim() || typeof phone !== 'string' || phone.replace(/\D/g, '').length < 8) throw new UserError('Name and valid phone are required');
+    await connectMongo();
+    return Response.json(await Driver.create({ restaurantId: session.restaurantId, name: name.trim(), phone: phone.trim(), available: true }), { status: 201 });
+  });
 }
 
 export const GET = withAudit("GET /api/drivers", handleGET);

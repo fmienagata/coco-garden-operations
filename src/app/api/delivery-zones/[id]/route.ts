@@ -1,23 +1,27 @@
 import { withAudit } from '../../../../lib/audit';
-import { cookies } from 'next/headers';
+import mongoose from 'mongoose';
 import DeliveryZone from '../../../../lib/models/DeliveryZone';
 import { connectMongo } from '../../../../lib/db/mongo';
-import { AUTH_COOKIE } from "../../../../lib/auth";
-import { getSession } from "../../../../lib/server-session";
+import { requireSession, readJson, apiResponse, UserError } from '../../../../lib/api';
 
 async function handlePUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const session = (await getSession((await cookies()).get(AUTH_COOKIE)?.value));
-  if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  if (session.role !== 'admin') return Response.json({ error: 'Accès réservé à l’administrateur' }, { status: 403 });
-  const restaurantId = session.restaurantId;
-  const patch = await request.json();
-  if (patch.fee !== undefined && (!Number.isInteger(patch.fee) || patch.fee < 0)) return Response.json({ error: 'Tarif entier en FCFA requis' }, { status: 400 });
-  if (patch.name !== undefined && (typeof patch.name !== 'string' || !patch.name.trim())) return Response.json({ error: 'Nom de zone requis' }, { status: 400 });
-  if (patch.active !== undefined && typeof patch.active !== 'boolean') return Response.json({ error: 'Disponibilité invalide' }, { status: 400 });
-  await connectMongo();
-  const { id } = await params;
-  const zone = await DeliveryZone.findOneAndUpdate({ _id: id, restaurantId }, { $set: patch }, { new: true, runValidators: true }).lean();
-  if (!zone) return Response.json({ error: 'Zone introuvable' }, { status: 404 });
-  return Response.json(zone);
+  return apiResponse(async () => {
+    const session = await requireSession({ roles: ['admin'], message: 'Accès réservé à l’administrateur' });
+    const patch = await readJson(request);
+    if (patch.fee !== undefined && (!Number.isInteger(patch.fee) || patch.fee < 0)) throw new UserError('Tarif entier en FCFA requis');
+    if (patch.name !== undefined && (typeof patch.name !== 'string' || !patch.name.trim())) throw new UserError('Nom de zone requis');
+    if (patch.active !== undefined && typeof patch.active !== 'boolean') throw new UserError('Disponibilité invalide');
+    const { id } = await params;
+    if (!mongoose.isValidObjectId(id)) throw new UserError('Identifiant invalide.');
+    // Liste blanche : sans elle, un $set libre permettrait de déplacer la zone vers un autre restaurantId.
+    const changes: Record<string, unknown> = {};
+    for (const field of ['name', 'fee', 'active', 'sortOrder']) if (patch[field] !== undefined) changes[field] = field === 'name' ? patch.name.trim() : patch[field];
+    if (!Object.keys(changes).length) throw new UserError('Aucune modification fournie.');
+    await connectMongo();
+    const zone = await DeliveryZone.findOneAndUpdate({ _id: id, restaurantId: session.restaurantId }, { $set: changes }, { new: true, runValidators: true }).lean();
+    if (!zone) throw new UserError('Zone introuvable', 404);
+    return Response.json(zone);
+  });
 }
+
 export const PUT = withAudit("PUT /api/delivery-zones/[id]", handlePUT);

@@ -1,17 +1,15 @@
 import { withAudit } from '../../../lib/audit';
-import { cookies } from 'next/headers';
-import { AUTH_COOKIE } from "../../../lib/auth";
-import { getSession } from "../../../lib/server-session";
+import { requireSession, UserError, apiResponse } from '../../../lib/api';
 import { connectMongo } from '../../../lib/db/mongo';
 import Order from '../../../lib/models/Order';
 import Settlement from '../../../lib/models/Settlement';
 import { buildReport, localDay, validPeriod, type ReportOrder, type Settlement as SettlementData } from '../../../lib/pilotage';
 async function handleGET(request: Request) {
-  const session = (await getSession((await cookies()).get(AUTH_COOKIE)?.value));
-  if (!session) return Response.json({ error: 'Connexion requise.' }, { status: 401 });
+  return apiResponse(async () => {
+  const session = await requireSession({ module: 'pilotage' });
   const query = new URL(request.url).searchParams;
   const from = query.get('from') || localDay(); const to = query.get('to') || from;
-  if (!validPeriod(from, to)) return Response.json({ error: 'Période invalide : choisissez au maximum 366 jours.' }, { status: 400 });
+  if (!validPeriod(from, to)) throw new UserError('Période invalide : choisissez au maximum 366 jours.');
   try {
     await connectMongo();
     const scope = { restaurantId: session.restaurantId, ...(query.get('demo') === 'true' ? {} : { isDemo: { $ne: true } }) };
@@ -22,7 +20,11 @@ async function handleGET(request: Request) {
     // Serialize Mongo dates and identifiers to a stable API contract.
     const report = buildReport(JSON.parse(JSON.stringify(orders)) as ReportOrder[], JSON.parse(JSON.stringify(settlements)) as SettlementData[], from, to);
     return Response.json({ ...report, generatedAt: new Date().toISOString() }, { headers: { 'Cache-Control': 'no-store' } });
-  } catch { return Response.json({ error: 'Le tableau de bord est indisponible. Réessayez dans un instant.' }, { status: 503 }); }
+  } catch (error) {
+    if (error instanceof UserError) throw error;
+    return Response.json({ error: 'Le tableau de bord est indisponible. Réessayez dans un instant.' }, { status: 503 });
+  }
+  });
 }
 
 export const GET = withAudit("GET /api/pilotage", handleGET);
