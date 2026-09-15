@@ -29,15 +29,20 @@ export default function CuisinePage() {
   const offline = useOffline();
   const queue = useQueue();
   const [orders, setOrders] = useState<Order[]>([]);
+  // Un écran de bar n'a pas à lire les plats, ni la cuisine les boissons :
+  // le poste choisi restreint le tableau aux lignes qui le concernent.
+  const [stations, setStations] = useState<{ _id: string; name: string; destination: string }[]>([]);
+  const [station, setStation] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  async function loadOrders() {
+  async function loadOrders(target = station) {
     try {
-      const response = await fetch('/api/orders', { cache: 'no-store' });
+      const response = await fetch(target ? `/api/stations/${target}/queue` : '/api/orders', { cache: 'no-store' });
       if (response.status === 401) { router.replace('/login'); return; }
       if (!response.ok) { setError('Impossible de charger les commandes.'); return; }
-      setOrders(await response.json());
+      const data = await response.json();
+      setOrders(Array.isArray(data) ? data : data.orders);
       setError('');
     } catch {
       // Coupure : le service worker a servi la dernière version connue, ou rien.
@@ -47,10 +52,17 @@ export default function CuisinePage() {
   }
 
   useEffect(() => {
-    loadOrders();
-    const interval = window.setInterval(loadOrders, 15000);
-    return () => window.clearInterval(interval);
+    fetch('/api/stations', { cache: 'no-store' })
+      .then((response) => (response.ok ? response.json() : []))
+      .then((found) => setStations(found.filter((entry: any) => entry.active && entry.destination !== 'imprimante')))
+      .catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    loadOrders(station);
+    const interval = window.setInterval(() => loadOrders(station), 15000);
+    return () => window.clearInterval(interval);
+  }, [station]);
 
   /**
    * Fait progresser une commande, réseau ou pas.
@@ -112,7 +124,7 @@ export default function CuisinePage() {
   return (
     <main id="module-content" tabIndex={-1} className="kitchen-shell">
       <ModulePageHeader title="Cuisine" description="Suivez la préparation des commandes, de la réception à la remise." actions={<span className="live-indicator">● En direct</span>} />
-      <section className="kitchen-summary"><div><strong>{visible.filter(order => columns.some(column => column.status === order.status)).length}</strong><span>commandes ouvertes</span></div><button onClick={loadOrders}>Actualiser</button></section>
+      <section className="kitchen-summary"><div><strong>{visible.filter(order => columns.some(column => column.status === order.status)).length}</strong><span>commandes ouvertes</span></div><div className="kitchen-station-picker">{stations.length > 0 && <label htmlFor="poste-cuisine">Poste<select id="poste-cuisine" value={station} onChange={(event) => setStation(event.target.value)}><option value="">Tous les postes</option>{stations.map((entry) => <option key={entry._id} value={entry._id}>{entry.name}</option>)}</select></label>}<button onClick={() => loadOrders(station)}>Actualiser</button></div></section>
       {error && <p className="form-error">{error}</p>}
       {loading ? <p className="muted">Chargement des commandes…</p> : <section className="order-board">
         {columns.map((column) => {

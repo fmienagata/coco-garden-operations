@@ -2,6 +2,7 @@ import { withAudit } from '../../../../lib/audit';
 import Order from '../../../../lib/models/Order';
 import { connectMongo } from '../../../../lib/db/mongo';
 import { requireSession, readJson, apiResponse, UserError } from '../../../../lib/api';
+import { dispatchToKitchen } from '../../../../lib/kitchen-dispatch';
 
 const preparationTransitions: Record<string, string> = { pending: 'confirmed', confirmed: 'preparing', preparing: 'ready' };
 
@@ -24,6 +25,8 @@ async function handlePOST(request: Request) {
     }
     const changed = await Order.findOneAndUpdate({ _id: order._id, restaurantId: session.restaurantId, status: order.status, __v: order.__v }, { $set: { status: allowed }, $inc: { __v: 1 } }, { new: true });
     if (!changed) throw new UserError('Commande modifiée entre-temps.', 409);
+    // Le passage en « confirmée » est le moment où la commande part aux postes de préparation.
+    if (allowed === 'confirmed') await dispatchToKitchen(session.restaurantId, String(changed._id));
     return Response.json(changed);
   });
 }

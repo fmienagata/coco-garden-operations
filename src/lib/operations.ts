@@ -8,6 +8,7 @@ import { assertNumberIsLeased } from './numbering';
 import { createIntakeOrder } from './order-intake';
 import { priceItems, details } from './dining';
 import type { DeviceIdentity } from './devices';
+import { dispatchToKitchen } from './kitchen-dispatch';
 
 export const MAX_BATCH = 200;
 const OP_ID = /^[A-Za-z0-9_-]{16,64}$/;
@@ -54,6 +55,9 @@ const handlers: Record<string, Handler> = {
       { new: true },
     ).lean() as any;
     if (!changed) throw new UserError('Commande modifiée entre-temps.', 409);
+    // Une confirmation rejouée après coupure produit le bon : l'identifiant déterministe
+    // du bon empêche qu'un second rejeu le fasse sortir une deuxième fois.
+    if (allowed === 'confirmed') await dispatchToKitchen(session.restaurantId, String(changed._id));
     return { resultId: String(changed._id), resultNumber: String(changed.orderNumber) };
   },
 
@@ -97,6 +101,7 @@ const handlers: Record<string, Handler> = {
       { new: true },
     ).lean() as any;
     if (!changed) throw new UserError('Ticket modifié entre-temps.', 409);
+    await dispatchToKitchen(session.restaurantId, String(changed._id));
     return { resultId: String(changed._id), resultNumber: String(changed.orderNumber) };
   },
 

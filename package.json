@@ -23,7 +23,10 @@
     "test:roles": "node tests/test-roles-api.cjs",
     "test:devices": "node tests/test-devices-api.cjs",
     "test:sync": "node tests/test-sync-api.cjs",
-    "test:offline": "node --test tests/test-offline-core.cjs"
+    "test:offline": "node --test tests/test-offline-core.cjs",
+    "test:routing": "node --test tests/test-kitchen-routing.cjs",
+    "test:kitchen": "node tests/test-kitchen-api.cjs",
+    "print-agent": "node scripts/print-agent.js"
   },
   "dependencies": {
     "next": "^16.3.4",

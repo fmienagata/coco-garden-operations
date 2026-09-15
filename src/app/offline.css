@@ -27,3 +27,7 @@
 .danger-button{border:1px solid #e0a893;border-radius:8px;background:white;color:#b33d2c;padding:10px 14px;font:inherit;cursor:pointer}
 
 @media(max-width:540px){.offline-bar{padding:10px 16px}.offline-bar__link{margin-left:0}}
+
+.kitchen-station-picker{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.kitchen-station-picker label{display:flex;align-items:center;gap:8px;font-size:14px;color:#607167}
+.kitchen-station-picker select{border:1px solid #cbd7cb;border-radius:8px;padding:9px 10px;font:inherit;background:white;color:#18372e}
