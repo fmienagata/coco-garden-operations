@@ -22,7 +22,8 @@
     "test:audit": "node tests/test-audit-api.cjs",
     "test:roles": "node tests/test-roles-api.cjs",
     "test:devices": "node tests/test-devices-api.cjs",
-    "test:sync": "node tests/test-sync-api.cjs"
+    "test:sync": "node tests/test-sync-api.cjs",
+    "test:offline": "node --test tests/test-offline-core.cjs"
   },
   "dependencies": {
     "next": "^16.3.4",

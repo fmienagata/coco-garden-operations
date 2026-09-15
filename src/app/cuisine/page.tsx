@@ -2,8 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useOffline } from 'next/offline';
 import { formatCfa } from '../../lib/restaurant';
 import ModulePageHeader from '../../components/ModulePageHeader';
+import { useQueue } from '../../lib/offline/useQueue';
+import { enqueue } from '../../lib/offline/client';
+import { mergePending } from '../../lib/offline/core';
 
 type Item = { name: string; itemCode?: string; qty: number; price: number };
 type Status = 'pending' | 'confirmed' | 'preparing' | 'ready';
@@ -22,15 +26,23 @@ function formatTime(value?: string) {
 
 export default function CuisinePage() {
   const router = useRouter();
+  const offline = useOffline();
+  const queue = useQueue();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   async function loadOrders() {
-    const response = await fetch('/api/orders', { cache: 'no-store' });
-    if (response.status === 401) { router.replace('/login'); return; }
-    if (!response.ok) { setError('Impossible de charger les commandes.'); return; }
-    setOrders(await response.json());
+    try {
+      const response = await fetch('/api/orders', { cache: 'no-store' });
+      if (response.status === 401) { router.replace('/login'); return; }
+      if (!response.ok) { setError('Impossible de charger les commandes.'); return; }
+      setOrders(await response.json());
+      setError('');
+    } catch {
+      // Coupure : le service worker a servi la dernière version connue, ou rien.
+      // Dans les deux cas on garde à l'écran ce que le poste sait déjà.
+    }
     setLoading(false);
   }
 
@@ -40,13 +52,30 @@ export default function CuisinePage() {
     return () => window.clearInterval(interval);
   }, []);
 
+  /**
+   * Fait progresser une commande, réseau ou pas.
+   *
+   * Hors ligne le geste part en file et sera rejoué à la reprise. En ligne on tente
+   * directement le serveur, mais un échec réseau bascule aussi en file : c'est le cas
+   * où la liaison tombe pendant l'appel, celui qui faisait perdre le geste jusqu'ici.
+   */
   async function updateStatus(id: string | undefined, status: Status) {
     if (!id) return;
     setOrders((current) => current.map((order) => order._id === id ? { ...order, status } : order));
-    const response = await fetch('/api/orders/update', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, patch: { status } }),
-    });
-    if (!response.ok) loadOrders();
+    if (offline) { await queueAdvance(id, status); return; }
+    try {
+      const response = await fetch('/api/orders/update', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, patch: { status } }),
+      });
+      if (!response.ok) loadOrders();
+    } catch {
+      await queueAdvance(id, status);
+    }
+  }
+
+  async function queueAdvance(id: string, status: Status) {
+    try { await enqueue('order.advance', { orderId: id, status }); }
+    catch (issue: any) { setError(issue.message || 'Ce poste ne peut pas enregistrer le geste hors ligne.'); loadOrders(); }
   }
 
 
@@ -77,14 +106,17 @@ export default function CuisinePage() {
     if (sentResponse.ok) setOrders((current) => current.map((currentOrder) => currentOrder._id === order._id ? { ...currentOrder, customerMessageSentAt: new Date().toISOString() } : currentOrder));
   }
 
+  // La vue combine ce que le serveur sait et ce qui attend encore la reprise.
+  const visible: Order[] = mergePending(orders as any, queue.pending) as unknown as Order[];
+
   return (
     <main id="module-content" tabIndex={-1} className="kitchen-shell">
       <ModulePageHeader title="Cuisine" description="Suivez la préparation des commandes, de la réception à la remise." actions={<span className="live-indicator">● En direct</span>} />
-      <section className="kitchen-summary"><div><strong>{orders.filter(order => columns.some(column => column.status === order.status)).length}</strong><span>commandes ouvertes</span></div><button onClick={loadOrders}>Actualiser</button></section>
+      <section className="kitchen-summary"><div><strong>{visible.filter(order => columns.some(column => column.status === order.status)).length}</strong><span>commandes ouvertes</span></div><button onClick={loadOrders}>Actualiser</button></section>
       {error && <p className="form-error">{error}</p>}
       {loading ? <p className="muted">Chargement des commandes…</p> : <section className="order-board">
         {columns.map((column) => {
-          const columnOrders = orders.filter((order) => order.status === column.status);
+          const columnOrders = visible.filter((order) => order.status === column.status);
           return <section className="order-column" key={column.status}>
             <div className="column-heading"><h2>{column.label}</h2><span>{columnOrders.length}</span></div>
             <div className="order-list">{columnOrders.map((order) => <article className="order-card" key={order._id}>

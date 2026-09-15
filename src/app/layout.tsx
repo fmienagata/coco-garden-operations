@@ -11,8 +11,10 @@ import "./api-explorer.css";
 import "./users.css";
 import "./users-polish.css";
 import "./modules.css";
+import "./offline.css";
 import RestaurantContact from '../components/RestaurantContact';
 import ModuleNavigation from '../components/ModuleNavigation';
+import OfflineRuntime from '../components/OfflineRuntime';
 import { RESTAURANT_NAME } from '../lib/restaurant';
 
 export const metadata: Metadata = {
@@ -21,5 +23,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="fr"><body><ModuleNavigation />{children}<RestaurantContact /></body></html>;
+  return <html lang="fr"><body><OfflineRuntime /><ModuleNavigation />{children}<RestaurantContact /></body></html>;
 }

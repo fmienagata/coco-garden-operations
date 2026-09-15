@@ -63,6 +63,7 @@ npm.cmd run test:roles
 npm.cmd run test:auth
 npm.cmd run test:devices
 npm.cmd run test:sync
+npm.cmd run test:offline
 ```
 
 Les tâches équivalentes sont disponibles dans `.vscode/tasks.json`.
@@ -183,6 +184,44 @@ poste conserve plusieurs sessions ouvertes en parallèle.
 
 `npm.cmd run test:sync` couvre plages disjointes, intégrité des numéros, rejeu sans doublon,
 refus définitifs, isolation du lot et refus sur ticket clos.
+
+### Le poste hors ligne
+
+`next.config.ts` active `experimental.useOffline`. Le hook `useOffline` de `next/offline`
+sonde réellement le serveur en `HEAD` avec repli progressif : il détecte donc le cas courant
+d'un appareil accroché au WiFi du restaurant alors que la liaison Internet est tombée, là où
+`navigator.onLine` répondrait « connecté ». **Ne pas réécrire cette détection à la main.**
+
+- `src/lib/offline/core.ts` : toute la logique qui décide, sans aucune API navigateur.
+  Consommation des numéros, réconciliation de la file, vue optimiste. C'est ce qui se teste
+  en Node via `npm.cmd run test:offline`.
+- `src/lib/offline/db.ts` : IndexedDB, choisi plutôt que localStorage parce que la file doit
+  survivre à une fermeture brutale et peut contenir des tickets entiers.
+- `src/lib/offline/client.ts` : enrôlement, réserve de numéros, file, reprise.
+- `public/sw.js` : Next reprend les navigations au retour du réseau, mais un **rechargement
+  complet** pendant une coupure échoue toujours, faute de HTML. Le service worker sert la
+  coque des écrans et la dernière lecture connue. Il n'intercepte jamais une écriture :
+  rejouer une écriture doublerait une commande.
+- `/poste` : enrôlement par jeton, réserve restante, file locale et opérations refusées.
+
+Règles à tenir :
+
+- **Le curseur de numérotation est écrit avant que l'opération entre en file.** Une coupure
+  entre les deux fait perdre un numéro, ce qui est sans conséquence ; l'ordre inverse
+  attribuerait deux fois le même numéro et créerait deux commandes sous la même référence.
+- **Une seule reprise à la fois.** Deux envois simultanés laisseraient la file locale
+  incohérente, même si le serveur dédoublonne.
+- **Une opération refusée quitte la file.** La garder la ferait rejouer sans fin. Elle est
+  affichée sur `/poste` pour que quelqu'un la traite en salle.
+- Une lecture qui échoue ne vide jamais l'écran : on garde ce que le poste sait déjà.
+
+**Ce qui est câblé à ce jour** : la Cuisine bascule en file dès que le réseau tombe, y compris
+quand la liaison casse en plein appel. La Salle et la prise de commande utilisent encore
+l'appel direct ; leurs types d'opération existent déjà côté serveur.
+
+Le service worker n'est enregistré qu'en production. Pour l'éprouver :
+`npm.cmd run build` puis `npm.cmd run start`, et couper le réseau dans les outils du
+navigateur. Le mode développement n'est pas une référence fiable pour le hors ligne.
 
 ## Cycle d'une commande
 

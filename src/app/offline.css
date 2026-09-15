@@ -1,0 +1,29 @@
+.offline-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 20px;font-size:14px;border-bottom:1px solid #dfe5dc;background:#efece1;color:#18372e}
+.offline-bar--offline{background:#3b2a22;color:#f6f5ef;border-bottom-color:#5a4438}
+.offline-bar--syncing{background:#e6ecdf}
+.offline-bar--warn{background:#f6e2d8}
+.offline-bar__dot{width:9px;height:9px;border-radius:50%;background:#e06b43;flex:none}
+.offline-bar--syncing .offline-bar__dot{background:#27734c}
+.offline-bar__meta{color:inherit;opacity:.72;font-size:13px}
+.offline-bar__link{margin-left:auto;color:inherit;font-size:13px}
+
+.poste-shell{max-width:920px}
+.poste-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;padding:24px 0}
+.poste-tile{background:white;border:1px solid #dfe5dc;border-radius:12px;padding:18px}
+.poste-tile span{display:block;font-size:12px;letter-spacing:2px;color:#778c7d;text-transform:uppercase}
+.poste-tile strong{display:block;font-size:30px;margin-top:8px;line-height:1.1;font-variant-numeric:tabular-nums}
+.poste-tile small{display:block;color:#607167;font-size:13px;margin-top:6px}
+.poste-tile--alert{border-color:#e0a893;background:#fbf1ec}
+
+.poste-actions{display:flex;flex-wrap:wrap;gap:10px;padding-bottom:12px}
+.poste-section{padding:24px 0;border-top:1px solid #dfe5dc}
+.poste-section h2{margin:0 0 6px}
+.poste-list{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:8px}
+.poste-list li{display:flex;justify-content:space-between;align-items:baseline;gap:14px;background:white;border:1px solid #dfe5dc;border-radius:10px;padding:12px 14px;font-size:14px}
+.poste-list code{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:#607167}
+.poste-list--rejected li{border-color:#e0a893;background:#fbf1ec}
+.poste-rejected-reason{color:#b33d2c;font-size:13px}
+.poste-empty{color:#607167;font-size:14px;margin-top:14px}
+.danger-button{border:1px solid #e0a893;border-radius:8px;background:white;color:#b33d2c;padding:10px 14px;font:inherit;cursor:pointer}
+
+@media(max-width:540px){.offline-bar{padding:10px 16px}.offline-bar__link{margin-left:0}}
