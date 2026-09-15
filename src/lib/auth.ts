@@ -12,7 +12,7 @@ export function normalizeRole(role?: string): UserRole {
 }
 
 export const ROLE_MODULES: Record<UserRole, string[]> = {
-  admin: ['salle', 'cuisine', 'livraison', 'carte', 'notifications', 'pilotage', 'api-docs', 'users', 'journal'],
+  admin: ['salle', 'cuisine', 'livraison', 'carte', 'notifications', 'pilotage', 'api-docs', 'users', 'journal', 'configuration'],
   serveur: ['salle', 'cuisine', 'livraison', 'notifications', 'pilotage'],
   cuisinier: ['cuisine'],
 };

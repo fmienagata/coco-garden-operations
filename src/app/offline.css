@@ -31,3 +31,31 @@
 .kitchen-station-picker{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .kitchen-station-picker label{display:flex;align-items:center;gap:8px;font-size:14px;color:#607167}
 .kitchen-station-picker select{border:1px solid #cbd7cb;border-radius:8px;padding:9px 10px;font:inherit;background:white;color:#18372e}
+
+.config-shell{max-width:980px}
+.config-notice{background:#e6ecdf;border-radius:8px;padding:12px 14px;font-size:14px;margin:0 0 8px}
+.config-token{background:#fbf1ec;border:1px solid #e0a893;border-radius:12px;padding:20px 22px;margin-bottom:8px}
+.config-token h2{margin:0 0 6px;font-size:20px}
+.config-token__value{display:block;font-family:ui-monospace,Consolas,monospace;font-size:13px;word-break:break-all;background:white;border:1px solid #e0cfc4;border-radius:8px;padding:12px;margin:14px 0}
+.config-list{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:10px}
+.config-list li{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;background:white;border:1px solid #dfe5dc;border-radius:12px;padding:14px 16px}
+.config-list li>div:first-child{display:grid;gap:3px;min-width:220px}
+.config-list strong{display:flex;align-items:center;gap:8px;font-size:16px}
+.config-list small{color:#607167;font-size:13px}
+.config-list__inactive{opacity:.55}
+.config-tag{background:#e6ecdf;border-radius:20px;padding:3px 9px;font-size:11px;font-weight:normal;letter-spacing:1px;text-transform:uppercase;color:#3d5c4e}
+.config-row-actions{display:flex;gap:8px;flex-wrap:wrap}
+.config-form{margin-top:26px;background:white;border:1px solid #dfe5dc;border-radius:12px;padding:20px 22px}
+.config-form h3{margin:0 0 16px;font-size:17px}
+.config-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.config-fields label{display:grid;gap:7px;font-size:14px;font-weight:bold}
+.config-fields input,.config-fields select{border:1px solid #cbd7cb;border-radius:8px;padding:11px;font:inherit;background:white;color:#18372e;font-weight:normal;width:100%}
+.config-check{display:flex;align-items:center;gap:9px;font-size:14px;color:#607167;margin-top:16px}
+.config-check input{width:17px;height:17px}
+.config-form .poste-actions{margin-top:18px;padding-bottom:0}
+.config-form button{border:0;border-radius:8px;padding:12px 16px;background:#e06b43;color:white;font:inherit;font-weight:bold;cursor:pointer}
+.config-form button.secondary-button,.config-form button.danger-button{background:white}
+.config-form button.secondary-button{border:1px solid #cbd7cb;color:#18372e}
+button:disabled{opacity:.6;cursor:default}
+
+@media(max-width:560px){.config-list li{flex-direction:column;align-items:flex-start}}
