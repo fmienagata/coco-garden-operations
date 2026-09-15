@@ -10,6 +10,7 @@
     "test:auth": "node --test tests/test-auth-unit.cjs",
     "test:pilotage": "node --test tests/test-pilotage.cjs",
     "test:pilotage:api": "node tests/test-pilotage-api.cjs",
+    "test:pilotage:window": "node tests/test-pilotage-window.cjs",
     "test:orders": "node tests/test-orders.js",
     "test:salle": "node tests/test-salle-api.cjs",
     "seed:demo": "node scripts/seed-demo-orders.js",

@@ -22,15 +22,25 @@ export async function loadStations(restaurantId: string): Promise<StationRoute[]
 /**
  * Les lignes d'une commande ne portent pas leur catégorie : elle vit sur la carte.
  * On la rattache au moment du routage, à partir du code article.
+ *
+ * L'index est construit une seule fois par requête et passé aux appels : le relire pour
+ * chaque commande d'une file rechargerait la carte entière des dizaines de fois.
  */
-async function withCategories(restaurantId: string, items: any[]): Promise<RoutedItem[]> {
+type CategoryIndex = { byCode: Map<string, string>; byName: Map<string, string> };
+
+async function categoryIndex(restaurantId: string): Promise<CategoryIndex> {
   const menu = await MenuItem.find({ restaurantId }).select('itemCode category name').lean() as any[];
-  const byCode = new Map(menu.map((entry) => [entry.itemCode, entry.category]));
-  const byName = new Map(menu.map((entry) => [entry.name, entry.category]));
+  return {
+    byCode: new Map(menu.map((entry) => [entry.itemCode, entry.category])),
+    byName: new Map(menu.map((entry) => [entry.name, entry.category])),
+  };
+}
+
+function withCategories(items: any[], index: CategoryIndex): RoutedItem[] {
   return (items || []).map((item: any) => ({
     ...item,
     // Un plat renommé depuis la prise de commande reste retrouvé par son code.
-    category: byCode.get(item.itemCode) || byName.get(item.name) || undefined,
+    category: index.byCode.get(item.itemCode) || index.byName.get(item.name) || undefined,
   }));
 }
 
@@ -54,7 +64,7 @@ export async function dispatchToKitchen(restaurantId: string, orderId: string) {
     const stations = await loadStations(restaurantId);
     if (stations.length === 0) return { created: 0 };
 
-    const items = await withCategories(restaurantId, order.items);
+    const items = withCategories(order.items, await categoryIndex(restaurantId));
     const routed = routeItems(items, stations);
     const source = {
       orderNumber: order.orderNumber,
@@ -112,9 +122,11 @@ export async function stationQueue(restaurantId: string, stationId: string) {
     status: { $in: ['confirmed', 'preparing', 'ready'] },
   }).sort({ createdAt: 1 }).limit(100).lean() as any[];
 
+  // Un seul chargement de la carte pour toute la file, quelle que soit sa longueur.
+  const index = await categoryIndex(restaurantId);
   const queue = [];
   for (const order of orders) {
-    const items = await withCategories(restaurantId, order.items);
+    const items = withCategories(order.items, index);
     const routed = routeItems(items, stations).find((entry) => entry.station.id === stationId);
     if (!routed) continue;
     queue.push({ ...order, items: routed.items });

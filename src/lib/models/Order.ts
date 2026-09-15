@@ -55,6 +55,13 @@ const OrderSchema = new Schema(
 
 OrderSchema.index({restaurantId:1,requestKey:1},{unique:true,partialFilterExpression:{requestKey:{$type:'string'}}});
 
+// Index des requêtes chaudes. Sans eux, chaque ouverture d'un module balaie la collection :
+// tenable sur une base de démonstration, pas après un an de service.
+OrderSchema.index({restaurantId:1,createdAt:-1});          // tableau cuisine, historique pilotage
+OrderSchema.index({restaurantId:1,status:1,createdAt:1});  // file d'un poste de préparation
+OrderSchema.index({restaurantId:1,fulfillmentType:1,diningClosed:1}); // tickets de salle ouverts
+OrderSchema.index({restaurantId:1,completedAt:-1});        // ventes finalisées
+
 // Ensure connection before accessing models in serverless / dev HMR
 connectMongo().catch(() => {});
 

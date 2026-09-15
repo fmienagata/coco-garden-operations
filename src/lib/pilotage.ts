@@ -10,6 +10,22 @@ export function validPeriod(from: string, to: string) {
   const valid = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(v).toISOString().slice(0,10) === v;
   return valid(from) && valid(to) && from <= to && (Date.parse(to) - Date.parse(from)) / 86400000 <= 365;
 }
+/**
+ * Fenêtre UTC à interroger pour couvrir une période exprimée en jours locaux.
+ *
+ * Le rapport raisonne en jours d'Afrique/Brazzaville alors que Mongo stocke de l'UTC.
+ * La marge de 36 heures absorbe largement le décalage : le filtrage exact reste fait par
+ * `buildReport`, cette borne ne sert qu'à éviter de charger tout l'historique à chaque
+ * ouverture du tableau de bord.
+ */
+export function periodWindow(from: string, to: string) {
+  const margin = 36 * 60 * 60 * 1000;
+  return {
+    start: new Date(Date.parse(from) - margin),
+    end: new Date(Date.parse(to) + 24 * 60 * 60 * 1000 + margin),
+  };
+}
+
 export function buildReport(orders: ReportOrder[], settlements: Settlement[], from: string, to: string) {
   const within = (value?: string) => !!value && localDay(value) >= from && localDay(value) <= to;
   const byOrder = new Map(settlements.map(s => [s.orderId, s]));
