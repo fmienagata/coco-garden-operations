@@ -1,0 +1,12 @@
+.next/
+node_modules/
+out/
+package-lock.json
+*.tsbuildinfo
+next-env.d.ts
+.github/prompts/
+outputs/
+
+# La documentation est de la prose relue à la main : Prettier la réenroulerait sans gain.
+*.md
+docs/
