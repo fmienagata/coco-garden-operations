@@ -64,6 +64,8 @@ npm.cmd run test:auth
 npm.cmd run test:devices
 npm.cmd run test:sync
 npm.cmd run test:offline
+npm.cmd run test:routing
+npm.cmd run test:kitchen
 ```
 
 Les tâches équivalentes sont disponibles dans `.vscode/tasks.json`.
@@ -222,6 +224,56 @@ l'appel direct ; leurs types d'opération existent déjà côté serveur.
 Le service worker n'est enregistré qu'en production. Pour l'éprouver :
 `npm.cmd run build` puis `npm.cmd run start`, et couper le réseau dans les outils du
 navigateur. Le mode développement n'est pas une référence fiable pour le hors ligne.
+
+### Postes de préparation : écran et impression
+
+Une commande confirmée part aux **postes de préparation** (`PreparationStation`). Chaque poste
+a une destination — `ecran`, `imprimante` ou `les_deux` — et reçoit les catégories de carte
+qui le concernent. C'est un réglage par établissement : certains clients n'auront qu'une
+imprimante, d'autres qu'une tablette. **Rien de tout cela ne doit être écrit en dur.**
+
+- `src/lib/kitchen-routing.ts` : répartition des lignes et mise en page du bon. Pur, donc
+  testable sans imprimante (`npm.cmd run test:routing`).
+- `src/lib/kitchen-dispatch.ts` : création des bons et file d'un poste sur écran.
+- `scripts/print-agent.js` : agent à lancer sur le PC de la caisse. Il réclame les bons et
+  les envoie en ESC/POS sur le réseau local, puisqu'un navigateur ne pilote pas une
+  imprimante thermique.
+
+Règles à tenir :
+
+- **Une catégorie non adressée tombe sur le poste par défaut.** Sans ce filet, un plat
+  ajouté à la carte sans qu'on pense au routage disparaîtrait de la cuisine en silence.
+- **L'identifiant du bon est déterministe** (`<restaurantId>:<orderId>:<stationId>`, même
+  motif que `Settlement` et `Operation`). Une confirmation rejouée après coupure ne fait
+  jamais sortir le plat deux fois.
+- **La réclamation d'un bon est atomique.** Deux agents branchés par erreur sur la même
+  imprimante ne peuvent pas sortir le même bon.
+- **Un échec de distribution n'annule jamais la confirmation.** Refuser une commande parce
+  qu'une imprimante est injoignable arrêterait le service ; un bon manquant se rattrape.
+- Un bon en échec repart en file, et s'arrête après cinq essais plutôt que de tourner en
+  boucle : une imprimante débranchée doit se voir.
+- **Aucun prix sur un bon de préparation** : cela n'aide personne et allonge le papier.
+
+Les accents ne passent pas en UTF-8 sur une imprimante thermique. L'agent sélectionne la page
+de codes 850 et convertit les caractères français ; un caractère hors table sort en point
+d'interrogation plutôt qu'en octet illisible.
+
+Pour vérifier la mise en page sans matériel :
+
+```powershell
+$env:PRINT_AGENT_TOKEN = "dev_..."
+$env:PRINT_AGENT_OUTPUT = "texte"
+npm.cmd run print-agent
+```
+
+**Limite connue.** Un bon est produit à la confirmation, une seule fois par commande et par
+poste. L'envoi par tour et l'ajout de lignes à un ticket déjà parti ne sont pas encore
+modélisés. La configuration des postes se fait par l'API : il n'y a pas encore d'écran
+d'administration.
+
+`npm.cmd run test:kitchen` couvre le routage, la séparation des bons, la réclamation unique,
+la reprise après échec, l'absence de doublon au rejeu et la file par écran.
+
 
 ## Cycle d'une commande
 
