@@ -61,6 +61,7 @@ npm.cmd run test:users
 npm.cmd run test:audit
 npm.cmd run test:roles
 npm.cmd run test:auth
+npm.cmd run test:devices
 ```
 
 Les tâches équivalentes sont disponibles dans `.vscode/tasks.json`.
@@ -119,6 +120,29 @@ Règles à tenir pour toute nouvelle route :
   d'écrire `restaurantId` et de sortir la donnée du tenant.
 
 Le test `npm.cmd run test:roles` vérifie cette matrice de bout en bout.
+
+### Postes et reprise par code
+
+Un poste (`src/lib/models/Device.ts`) est une identité durable : il portera sa plage de numéros
+et signera les opérations produites hors ligne. Il s'authentifie par l'en-tête `x-device-token`.
+
+- Le jeton porte 256 bits d'entropie et n'est stocké qu'en SHA-256 : une KDF lente serait payée
+  à chaque requête sans rien apporter contre une force brute. Un PIN, à l'inverse, a peu
+  d'entropie : il passe par scrypt et par un verrouillage.
+- Le jeton n'est lisible qu'à l'enrôlement et à la rotation (`PATCH` avec `rotateToken: true`).
+  Un poste perdu se coupe par rotation ou par `DELETE`, qui est un retrait logique afin que les
+  numéros déjà émis restent lisibles.
+- `GET /api/auth/pin` rend la liste de reprise pour un poste reconnu ; `POST /api/auth/pin`
+  ouvre la session. Le compte est choisi dans la liste puis confirmé par son code, ce qui évite
+  d'imposer des PIN uniques dans l'établissement.
+- Cinq échecs bloquent le compte quinze minutes. Le verrouillage est persisté en base pour
+  survivre à un redémarrage et rester valable en multi-instance. Un compte inconnu répond
+  exactement comme un code faux.
+- Les codes trop évidents sont refusés : répétition d'un chiffre, suite croissante ou
+  décroissante. Le mot de passe reste la voie d'accès complète ; le code ne sert qu'à la
+  reprise de poste en service.
+
+`npm.cmd run test:devices` couvre l'ensemble.
 
 ## Cycle d'une commande
 

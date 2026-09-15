@@ -1,4 +1,5 @@
 import { requireSession, readJson, apiResponse, UserError } from './api';
+import { pinIsAcceptable } from './passwords';
 export { UserError };
 export const userFields = '_id login name role active authType createdAt updatedAt';
 export async function requireAdmin() {
@@ -16,6 +17,10 @@ export function validateAccount(body: any, creating = false) {
   if (body.active !== undefined && typeof body.active !== 'boolean') throw new UserError('Statut invalide.');
   if (creating || (body.password !== undefined && body.password !== '')) {
     if (typeof body.password !== 'string' || body.password.length < 8 || body.password.length > 128) throw new UserError('Le mot de passe doit contenir entre 8 et 128 caractères.');
+  }
+  // Une chaîne vide retire le PIN et ramène le compte au mot de passe seul.
+  if (body.pin !== undefined && body.pin !== '') {
+    if (typeof body.pin !== 'string' || !pinIsAcceptable(body.pin)) throw new UserError('Le code doit contenir 4 à 8 chiffres, sans suite ni répétition évidente.');
   }
 }
 export const userResponse = apiResponse;

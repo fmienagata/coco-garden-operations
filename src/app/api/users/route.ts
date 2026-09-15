@@ -15,7 +15,7 @@ async function handlePOST(request: Request) {
     const body = await readBody(request);
     validateAccount(body, true);
     if (await User.exists({restaurantId:session.restaurantId,login:body.login})) throw new UserError('Cet identifiant est déjà utilisé.',409);
-    const user = await User.create({restaurantId:session.restaurantId,login:body.login,name:body.name.trim(),passwordHash:hashPassword(body.password),role:body.role || 'serveur',active:body.active ?? true});
+    const user = await User.create({restaurantId:session.restaurantId,login:body.login,name:body.name.trim(),passwordHash:hashPassword(body.password),pinHash:body.pin ? hashPassword(body.pin) : null,role:body.role || 'serveur',active:body.active ?? true});
     return Response.json(await User.findById(user._id).select(userFields).lean(),{status:201});
   });
 }

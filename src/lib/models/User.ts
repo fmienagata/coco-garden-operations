@@ -11,6 +11,12 @@ const UserSchema = new Schema({
   active: { type: Boolean, default: true },
   deletedAt: { type: Date, default: null },
   sessionVersion: { type: Number, default: 0 },
+  // Le PIN sert à la reprise de poste en plein service ; le mot de passe reste la voie
+  // d'accès complète. Un PIN a peu d'entropie : il n'est utilisable que depuis un poste
+  // enrôlé, et le verrouillage est persisté pour survivre à un redémarrage.
+  pinHash: { type: String, default: null, select: false },
+  pinFailedAttempts: { type: Number, default: 0, select: false },
+  pinLockedUntil: { type: Date, default: null, select: false },
 }, { timestamps: true });
 
 UserSchema.index({ restaurantId: 1, login: 1 }, { unique: true });

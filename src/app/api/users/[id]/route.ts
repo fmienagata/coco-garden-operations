@@ -24,7 +24,7 @@ async function handlePATCH(request: Request, context: Context) {
     const session=await requireAdmin(); const user=await target(context,session.restaurantId);
     const body=await readBody(request);
     if (user.authType === 'api_token') {
-      if (body.login !== undefined || body.role !== undefined || body.password !== undefined) throw new UserError('Pour cet agent, seuls le nom et le statut sont modifiables.');
+      if (body.login !== undefined || body.role !== undefined || body.password !== undefined || body.pin !== undefined) throw new UserError('Pour cet agent, seuls le nom et le statut sont modifiables.');
     }
     validateAccount(body);
     if (user.login === session.login && ((body.login !== undefined && body.login !== user.login) || body.active === false || (body.role !== undefined && body.role !== 'admin'))) throw new UserError('Vous ne pouvez pas changer votre identifiant, retirer vos droits administrateur ou désactiver votre propre compte.');
@@ -33,7 +33,13 @@ async function handlePATCH(request: Request, context: Context) {
     const changes: Record<string,unknown> = {};
     for (const key of ['name','login','role','active']) if (body[key] !== undefined) changes[key] = key === 'name' ? body.name.trim() : body[key];
     if (body.password) changes.passwordHash=hashPassword(body.password);
-    const invalidate = Boolean(body.password || (body.login !== undefined && body.login !== user.login) || body.active === false);
+    if (body.pin !== undefined) {
+      // Définir ou retirer un code libère aussi le verrouillage en cours.
+      changes.pinHash = body.pin === '' ? null : hashPassword(body.pin);
+      changes.pinFailedAttempts = 0;
+      changes.pinLockedUntil = null;
+    }
+    const invalidate = Boolean(body.password || body.pin !== undefined || (body.login !== undefined && body.login !== user.login) || body.active === false);
     await User.updateOne({_id:user._id,restaurantId:session.restaurantId},{$set:changes,...(invalidate ? {$inc:{sessionVersion:1}} : {})});
     return Response.json(await User.findById(user._id).select(userFields).lean());
   });
