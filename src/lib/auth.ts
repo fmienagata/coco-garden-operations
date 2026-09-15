@@ -27,7 +27,11 @@ export function isWhatsappAgentRequest(request: Request) {
 }
 
 function getSecret() {
-  return process.env.AUTH_SECRET || 'development-only-secret-change-me';
+  const secret = process.env.AUTH_SECRET;
+  if (secret) return secret;
+  // Sans secret, toute session serait forgeable : on échoue plutôt que de signer avec une valeur connue.
+  if (process.env.NODE_ENV === 'production') throw new Error('AUTH_SECRET is required in production');
+  return 'development-only-secret-change-me';
 }
 
 function sign(value: string) {
@@ -50,10 +54,6 @@ export function isValidSession(value?: string) {
   } catch {
     return false;
   }
-}
-
-export function credentialsAreValid(login: string, password: string) {
-  return login === (process.env.CUISINE_LOGIN || 'cuisine') && password === (process.env.CUISINE_PASSWORD || 'cuisine');
 }
 
 export function getSession(value?: string) {

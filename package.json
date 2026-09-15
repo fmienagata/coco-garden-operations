@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start --hostname 127.0.0.1 --port 3001",
     "typecheck": "tsc --noEmit",
+    "test:auth": "node --test tests/test-auth-unit.cjs",
     "test:pilotage": "node --test tests/test-pilotage.cjs",
     "test:pilotage:api": "node tests/test-pilotage-api.cjs",
     "test:orders": "node tests/test-orders.js",

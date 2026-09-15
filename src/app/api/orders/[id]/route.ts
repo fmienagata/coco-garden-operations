@@ -1,4 +1,5 @@
 import { withAudit } from '../../../../lib/audit';
+import mongoose from 'mongoose';
 import Settlement from '../../../../lib/models/Settlement';
 import Order from '../../../../lib/models/Order';
 import { connectMongo } from '../../../../lib/db/mongo';
@@ -6,52 +7,39 @@ import { cookies } from 'next/headers';
 import { AUTH_COOKIE } from "../../../../lib/auth";
 import { getSession } from "../../../../lib/server-session";
 
+// Aucune écriture libre ici : le workflow de préparation passe par POST /api/orders/update,
+// la Salle par PATCH /api/salle/orders/[id], et la caisse par POST /api/pilotage/actions.
+
+async function resolve(params: Promise<{ id: string }>, restaurantId: string) {
+  const { id } = await params;
+  if (!mongoose.isValidObjectId(id)) return { id, order: null as Record<string, unknown> | null, invalid: true };
+  await connectMongo();
+  const order = await Order.findOne({ _id: id, restaurantId }).lean() as Record<string, unknown> | null;
+  return { id, order, invalid: false };
+}
+
 async function handleGET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const cookieStore = await cookies();
   const session = (await getSession(cookieStore.get(AUTH_COOKIE)?.value));
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  await connectMongo();
-  const { id } = await params;
-  // Fallback: use string comparison over all documents to avoid ObjectId type issues
-  const all = await Order.find({ restaurantId: session.restaurantId }).lean();
-  const found = all.find((d: any) => String(d._id) === String(id));
-  if (!found) return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
-  return Response.json(found);
-}
-
-async function handlePUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const cookieStore = await cookies();
-  const session = (await getSession(cookieStore.get(AUTH_COOKIE)?.value));
-  if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  await connectMongo();
-  const { id } = await params;
-  const body = await request.json();
-  const order = await Order.findOne({ _id: id, restaurantId: session.restaurantId });
-  if (!order) return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
-  if(order.fulfillmentType==='dine_in') return Response.json({error:'Utilisez le module Salle.'},{status:409});
-  const recorded = await Settlement.findOne({ restaurantId: session.restaurantId, orderId: String(id) }).lean() as { collectedAt?: Date } | null;
-  if (recorded && (recorded.collectedAt || Object.keys(body).some(key => key !== 'status'))) return Response.json({ error: 'Les données de cette commande sont protégées par son historique de pilotage.' }, { status: 409 });
-  Object.assign(order, body);
-  await order.save();
-  return Response.json(order.toObject());
+  const { order, invalid } = await resolve(params, session.restaurantId);
+  if (invalid) return Response.json({ error: 'Identifiant invalide.' }, { status: 400 });
+  if (!order) return Response.json({ error: 'Not found' }, { status: 404 });
+  return Response.json(order);
 }
 
 async function handleDELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const cookieStore = await cookies();
   const session = (await getSession(cookieStore.get(AUTH_COOKIE)?.value));
   if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  await connectMongo();
-  const { id } = await params;
-  // find by string match then delete by id
-  const all = await Order.find({ restaurantId: session.restaurantId }).lean();
-  const found = all.find((d: any) => String(d._id) === String(id));
-  if (!found) return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
-  if(found.fulfillmentType==='dine_in') return Response.json({error:'Utilisez l’annulation dans le module Salle.'},{status:409});
+  const { id, order, invalid } = await resolve(params, session.restaurantId);
+  if (invalid) return Response.json({ error: 'Identifiant invalide.' }, { status: 400 });
+  if (!order) return Response.json({ error: 'Not found' }, { status: 404 });
+  if (order.fulfillmentType === 'dine_in') return Response.json({ error: 'Utilisez l’annulation dans le module Salle.' }, { status: 409 });
   if (await Settlement.exists({ restaurantId: session.restaurantId, orderId: String(id) })) return Response.json({ error: 'Une commande avec un historique de pilotage ne peut pas être supprimée.' }, { status: 409 });
-  await Order.findByIdAndDelete(found._id);
+  await Order.deleteOne({ _id: id, restaurantId: session.restaurantId });
   return Response.json({ success: true });
 }
 
 export const GET = withAudit("GET /api/orders/[id]", handleGET);
-export const PUT = withAudit("PUT /api/orders/[id]", handlePUT);
 export const DELETE = withAudit("DELETE /api/orders/[id]", handleDELETE);

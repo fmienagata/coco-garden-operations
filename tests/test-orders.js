@@ -51,6 +51,22 @@ if (fs.existsSync(envPath)) {
       body: JSON.stringify({ id: created._id, patch: { total: 1 } })
     });
     if (forbiddenRes.status !== 400) fail('Arbitrary order patch was accepted');
+
+    // P0 : PUT /api/orders/[id] appliquait Object.assign(order, body) et a été retiré.
+    // Le total, le statut et le restaurantId ne doivent plus être modifiables librement.
+    const putRes = await fetch(base + '/api/orders/' + created._id, {
+      method: 'PUT', headers,
+      body: JSON.stringify({ total: 1, status: 'completed', restaurantId: 'autre-restaurant' })
+    });
+    if (putRes.status !== 405) fail('PUT /api/orders/[id] must no longer be routable, got ' + putRes.status);
+
+    // P0 : un identifiant non valide est refusé sans balayer la collection.
+    const badIdRes = await fetch(base + '/api/orders/pas-un-object-id', { headers });
+    if (badIdRes.status !== 400) fail('Invalid order id must return 400, got ' + badIdRes.status);
+
+    // P0 : la route de santé est publique et ne doit jamais renvoyer le détail d'une erreur Mongo.
+    const healthBody = await (await fetch(base + '/api/health')).text();
+    if (/mongodb:\/\//.test(healthBody) || /"error"/.test(healthBody)) fail('Health route leaks connection details: ' + healthBody);
     for (const status of ['confirmed', 'preparing', 'ready']) {
       const updateRes = await fetch(base + '/api/orders/update', {
         method: 'POST', headers,
@@ -76,7 +92,7 @@ if (fs.existsSync(envPath)) {
     const exists = listFinal.some((d)=>String(d._id)===String(created._id));
     if (exists) fail('Order still present after delete');
 
-    console.log('OK: create → put → get → delete flow succeeded. id:', created._id);
+    console.log('OK: create → update → get → delete flow succeeded. id:', created._id);
   } catch (err) {
     console.error('ERROR', err);
     process.exitCode = 1;

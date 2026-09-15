@@ -5,7 +5,12 @@ let connectionPromise: Promise<typeof mongoose> | null = null;
 export function connectMongo() {
   if (!process.env.MONGO_URI) throw new Error('MONGO_URI not set');
   if (!connectionPromise) {
-    connectionPromise = mongoose.connect(process.env.MONGO_URI);
+    // Une promesse rejetée ne doit pas rester en cache : sinon un échec transitoire
+    // au démarrage condamne l'application jusqu'au prochain redémarrage.
+    connectionPromise = mongoose.connect(process.env.MONGO_URI).catch((error) => {
+      connectionPromise = null;
+      throw error;
+    });
   }
   return connectionPromise;
 }

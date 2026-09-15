@@ -13,6 +13,8 @@ export async function GET() {
 
     return Response.json({ ...base, db: provider, dbStatus: 'unknown-provider' });
   } catch (err) {
-    return new Response(JSON.stringify({ ...base, db: provider, dbStatus: 'error', error: String(err) }), { status: 500 });
+    // La route est publique : le détail de l'erreur contient l'URI Mongo et ses identifiants.
+    console.error('HEALTH_DB_CHECK_FAILED', err);
+    return Response.json({ ...base, db: provider, dbStatus: 'error' }, { status: 500 });
   }
 }
