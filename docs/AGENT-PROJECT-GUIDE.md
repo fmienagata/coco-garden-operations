@@ -62,6 +62,7 @@ npm.cmd run test:audit
 npm.cmd run test:roles
 npm.cmd run test:auth
 npm.cmd run test:devices
+npm.cmd run test:sync
 ```
 
 Les tâches équivalentes sont disponibles dans `.vscode/tasks.json`.
@@ -143,6 +144,45 @@ et signera les opérations produites hors ligne. Il s'authentifie par l'en-tête
   reprise de poste en service.
 
 `npm.cmd run test:devices` couvre l'ensemble.
+
+### Reprise hors ligne : plages de numéros et journal d'opérations
+
+Deux mécanismes permettent à un poste de continuer à travailler pendant une coupure.
+
+**Plages de numéros.** `POST /api/number-leases` concède au poste une plage à consommer hors
+ligne. La plage vient du même compteur atomique `OrderCounter` que la numérotation en ligne :
+deux postes ne peuvent donc jamais recevoir le même numéro, sans coordination entre eux. Un
+numéro produit hors ligne s'écrit `CMD-<PREFIXE>-<seq>` et est vérifié à la reprise : un poste
+ne peut pas s'attribuer un numéro hors de ses plages, ni un numéro portant le préfixe d'un
+autre poste.
+
+**Journal d'opérations.** `POST /api/sync` rejoue les gestes métier produits hors ligne, pas
+l'état final : c'est ce qui permet au serveur d'arbitrer les conflits avec ce qui s'est passé
+ailleurs pendant la coupure, au lieu d'écraser aveuglément. Trois propriétés le tiennent :
+
+- L'identifiant d'opération est déterministe côté serveur (`<restaurantId>:<opId>`, même motif
+  que `Settlement`). Un rejeu rend le résultat déjà enregistré au lieu de dupliquer.
+- **Un refus est enregistré comme tel.** Sans cela, une opération devenue impossible serait
+  réémise indéfiniment par un poste qui n'obtient jamais de réponse définitive.
+- Une opération en échec n'interrompt pas le lot : le lot répond toujours 200 et chaque
+  opération porte son propre sort, sinon une seule opération empoisonnée bloquerait toute la
+  reprise du poste.
+
+Un échec d'infrastructure rend `retry` et n'est pas enregistré ; une règle métier violée rend
+`rejected` et l'est définitivement. Un ticket `completed` ou `cancelled` ne se rejoue jamais.
+
+Types acceptés aujourd'hui : `order.create`, `order.advance`, `salle.ticket.create`,
+`salle.ticket.send`, `salle.ticket.serve`. Le registre est dans `src/lib/operations.ts` ; en
+ajouter un consiste à écrire une fonction et rien d'autre. La tarification passe par
+`src/lib/order-intake.ts`, partagé avec la route en ligne : une commande suit exactement le
+même chemin de validation qu'elle arrive en direct ou après une coupure.
+
+**Limite connue.** L'auteur enregistré est la session qui dépose le lot, pas nécessairement
+celle qui a produit chaque geste hors ligne. Une attribution par opération demandera que le
+poste conserve plusieurs sessions ouvertes en parallèle.
+
+`npm.cmd run test:sync` couvre plages disjointes, intégrité des numéros, rejeu sans doublon,
+refus définitifs, isolation du lot et refus sur ticket clos.
 
 ## Cycle d'une commande
 

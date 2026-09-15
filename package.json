@@ -21,7 +21,8 @@
     "seed:users": "node scripts/seed-users.js",
     "test:audit": "node tests/test-audit-api.cjs",
     "test:roles": "node tests/test-roles-api.cjs",
-    "test:devices": "node tests/test-devices-api.cjs"
+    "test:devices": "node tests/test-devices-api.cjs",
+    "test:sync": "node tests/test-sync-api.cjs"
   },
   "dependencies": {
     "next": "^16.3.4",
