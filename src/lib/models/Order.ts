@@ -8,9 +8,9 @@ const ItemSchema = new Schema(
     variant: String,
     itemCode: { type: String, trim: true },
     qty: { type: Number, required: true, default: 1 },
-    price: { type: Number, required: true, default: 0 }
+    price: { type: Number, required: true, default: 0 },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const OrderSchema = new Schema(
@@ -22,11 +22,42 @@ const OrderSchema = new Schema(
     createdByLabel: { type: String, required: true, default: 'Équipe management' },
     fulfillmentType: { type: String, enum: ['delivery', 'takeaway', 'dine_in'], required: true, default: 'takeaway' },
     customerName: { type: String, trim: true },
-    customerPhone: { type: String, trim: true, required: function(this: { fulfillmentType: string }) { return this.fulfillmentType === 'delivery'; } },
-    deliveryAddress: { type: String, trim: true, required: function(this: { fulfillmentType: string }) { return this.fulfillmentType === 'delivery'; } },
-    deliveryZoneId: { type: String, trim: true, required: function(this: { fulfillmentType: string }) { return this.fulfillmentType === 'delivery'; } },
-    deliveryZoneName: { type: String, trim: true, required: function(this: { fulfillmentType: string }) { return this.fulfillmentType === 'delivery'; } },
-    deliveryFee: { type: Number, min: 0, required: function(this: { fulfillmentType: string }) { return this.fulfillmentType === 'delivery'; }, default: 0 },
+    customerPhone: {
+      type: String,
+      trim: true,
+      required: function (this: { fulfillmentType: string }) {
+        return this.fulfillmentType === 'delivery';
+      },
+    },
+    deliveryAddress: {
+      type: String,
+      trim: true,
+      required: function (this: { fulfillmentType: string }) {
+        return this.fulfillmentType === 'delivery';
+      },
+    },
+    deliveryZoneId: {
+      type: String,
+      trim: true,
+      required: function (this: { fulfillmentType: string }) {
+        return this.fulfillmentType === 'delivery';
+      },
+    },
+    deliveryZoneName: {
+      type: String,
+      trim: true,
+      required: function (this: { fulfillmentType: string }) {
+        return this.fulfillmentType === 'delivery';
+      },
+    },
+    deliveryFee: {
+      type: Number,
+      min: 0,
+      required: function (this: { fulfillmentType: string }) {
+        return this.fulfillmentType === 'delivery';
+      },
+      default: 0,
+    },
     deliveryNotes: { type: String, trim: true, default: '' },
     driverPhone: { type: String, trim: true },
     driverId: { type: String, trim: true },
@@ -39,28 +70,49 @@ const OrderSchema = new Schema(
     isDemo: { type: Boolean, default: false },
     diningTableId: String,
     covers: Number,
-    diningNotes: {type:String,default:''},
+    diningNotes: { type: String, default: '' },
     servedAt: Date,
     completedAt: Date,
-    diningClosed: {type:Boolean,default:false},
+    diningClosed: { type: Boolean, default: false },
     cancellationReason: String,
     requestKey: String,
     tableNumber: { type: Number, required: false, min: 1 },
     items: { type: [ItemSchema], required: true, default: [] },
     total: { type: Number, required: true, default: 0 },
-    status: { type: String, enum: ['draft', 'pending', 'confirmed', 'preparing', 'ready', 'served', 'driver_assigned', 'in_delivery', 'delivered', 'collected', 'completed', 'cancelled'], required: true, default: 'pending' }
+    status: {
+      type: String,
+      enum: [
+        'draft',
+        'pending',
+        'confirmed',
+        'preparing',
+        'ready',
+        'served',
+        'driver_assigned',
+        'in_delivery',
+        'delivered',
+        'collected',
+        'completed',
+        'cancelled',
+      ],
+      required: true,
+      default: 'pending',
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-OrderSchema.index({restaurantId:1,requestKey:1},{unique:true,partialFilterExpression:{requestKey:{$type:'string'}}});
+OrderSchema.index(
+  { restaurantId: 1, requestKey: 1 },
+  { unique: true, partialFilterExpression: { requestKey: { $type: 'string' } } },
+);
 
 // Index des requêtes chaudes. Sans eux, chaque ouverture d'un module balaie la collection :
 // tenable sur une base de démonstration, pas après un an de service.
-OrderSchema.index({restaurantId:1,createdAt:-1});          // tableau cuisine, historique pilotage
-OrderSchema.index({restaurantId:1,status:1,createdAt:1});  // file d'un poste de préparation
-OrderSchema.index({restaurantId:1,fulfillmentType:1,diningClosed:1}); // tickets de salle ouverts
-OrderSchema.index({restaurantId:1,completedAt:-1});        // ventes finalisées
+OrderSchema.index({ restaurantId: 1, createdAt: -1 }); // tableau cuisine, historique pilotage
+OrderSchema.index({ restaurantId: 1, status: 1, createdAt: 1 }); // file d'un poste de préparation
+OrderSchema.index({ restaurantId: 1, fulfillmentType: 1, diningClosed: 1 }); // tickets de salle ouverts
+OrderSchema.index({ restaurantId: 1, completedAt: -1 }); // ventes finalisées
 
 // Ensure connection before accessing models in serverless / dev HMR
 connectMongo().catch(() => {});

@@ -12,7 +12,18 @@ export function normalizeRole(role?: string): UserRole {
 }
 
 export const ROLE_MODULES: Record<UserRole, string[]> = {
-  admin: ['salle', 'cuisine', 'livraison', 'carte', 'notifications', 'pilotage', 'api-docs', 'users', 'journal', 'configuration'],
+  admin: [
+    'salle',
+    'cuisine',
+    'livraison',
+    'carte',
+    'notifications',
+    'pilotage',
+    'api-docs',
+    'users',
+    'journal',
+    'configuration',
+  ],
   serveur: ['salle', 'cuisine', 'livraison', 'notifications', 'pilotage'],
   cuisinier: ['cuisine'],
 };
@@ -38,8 +49,22 @@ function sign(value: string) {
   return crypto.createHmac('sha256', getSecret()).update(value).digest('hex');
 }
 
-export function createSession(login: string, restaurantId = DEFAULT_RESTAURANT_ID, role = 'serveur', sessionVersion = 0) {
-  const payload = Buffer.from(JSON.stringify({ login, restaurantId, sessionVersion, role: normalizeRole(role), actorType: 'management', expiresAt: Date.now() + 8 * 60 * 60 * 1000 })).toString('base64url');
+export function createSession(
+  login: string,
+  restaurantId = DEFAULT_RESTAURANT_ID,
+  role = 'serveur',
+  sessionVersion = 0,
+) {
+  const payload = Buffer.from(
+    JSON.stringify({
+      login,
+      restaurantId,
+      sessionVersion,
+      role: normalizeRole(role),
+      actorType: 'management',
+      expiresAt: Date.now() + 8 * 60 * 60 * 1000,
+    }),
+  ).toString('base64url');
   return `${payload}.${sign(payload)}`;
 }
 
@@ -47,7 +72,13 @@ export function isValidSession(value?: string) {
   if (!value) return false;
   const [payload, signature] = value.split('.');
   const expectedSignature = payload ? sign(payload) : '';
-  if (!payload || !signature || signature.length !== expectedSignature.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) return false;
+  if (
+    !payload ||
+    !signature ||
+    signature.length !== expectedSignature.length ||
+    !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))
+  )
+    return false;
   try {
     const session = JSON.parse(Buffer.from(payload, 'base64url').toString());
     return Boolean(session.login && session.expiresAt > Date.now());
@@ -60,7 +91,13 @@ export function getSession(value?: string) {
   if (!isValidSession(value)) return null;
   try {
     const session = JSON.parse(Buffer.from(value!.split('.')[0], 'base64url').toString());
-    return { ...session, role: normalizeRole(session.role) } as { login: string; restaurantId: string; role: UserRole; actorType: ActorType; sessionVersion?: number };
+    return { ...session, role: normalizeRole(session.role) } as {
+      login: string;
+      restaurantId: string;
+      role: UserRole;
+      actorType: ActorType;
+      sessionVersion?: number;
+    };
   } catch {
     return null;
   }

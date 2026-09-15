@@ -12,7 +12,7 @@ async function findOrder(params: Promise<{ id: string }>, restaurantId: string) 
   const { id } = await params;
   if (!mongoose.isValidObjectId(id)) throw new UserError('Identifiant invalide.');
   await connectMongo();
-  const order = await Order.findOne({ _id: id, restaurantId }).lean() as Record<string, unknown> | null;
+  const order = (await Order.findOne({ _id: id, restaurantId }).lean()) as Record<string, unknown> | null;
   if (!order) throw new UserError('Not found', 404);
   return { id, order };
 }
@@ -27,14 +27,18 @@ async function handleGET(_request: Request, { params }: { params: Promise<{ id: 
 
 async function handleDELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   return apiResponse(async () => {
-    const session = await requireSession({ roles: ['admin'], message: 'La suppression d’une commande est réservée à l’administrateur.' });
+    const session = await requireSession({
+      roles: ['admin'],
+      message: 'La suppression d’une commande est réservée à l’administrateur.',
+    });
     const { id, order } = await findOrder(params, session.restaurantId);
     if (order.fulfillmentType === 'dine_in') throw new UserError('Utilisez l’annulation dans le module Salle.', 409);
-    if (await Settlement.exists({ restaurantId: session.restaurantId, orderId: String(id) })) throw new UserError('Une commande avec un historique de pilotage ne peut pas être supprimée.', 409);
+    if (await Settlement.exists({ restaurantId: session.restaurantId, orderId: String(id) }))
+      throw new UserError('Une commande avec un historique de pilotage ne peut pas être supprimée.', 409);
     await Order.deleteOne({ _id: id, restaurantId: session.restaurantId });
     return Response.json({ success: true });
   });
 }
 
-export const GET = withAudit("GET /api/orders/[id]", handleGET);
-export const DELETE = withAudit("DELETE /api/orders/[id]", handleDELETE);
+export const GET = withAudit('GET /api/orders/[id]', handleGET);
+export const DELETE = withAudit('DELETE /api/orders/[id]', handleDELETE);

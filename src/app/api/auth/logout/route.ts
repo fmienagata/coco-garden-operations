@@ -8,4 +8,4 @@ async function handlePOST() {
   return Response.json({ success: true });
 }
 
-export const POST = withAudit("POST /api/auth/logout", handlePOST);
+export const POST = withAudit('POST /api/auth/logout', handlePOST);

@@ -19,15 +19,19 @@ async function handlePOST(request: Request, { params }: { params: Promise<{ id: 
     if (!['printed', 'failed'].includes(body.result)) throw new UserError('Résultat invalide.');
 
     await connectMongo();
-    const changes = body.result === 'printed'
-      ? { status: 'printed', printedAt: new Date(), lastError: null }
-      : { status: 'pending', lastError: typeof body.error === 'string' ? body.error.slice(0, 300) : 'Impression impossible.' };
+    const changes =
+      body.result === 'printed'
+        ? { status: 'printed', printedAt: new Date(), lastError: null }
+        : {
+            status: 'pending',
+            lastError: typeof body.error === 'string' ? body.error.slice(0, 300) : 'Impression impossible.',
+          };
 
-    const job = await PrintJob.findOneAndUpdate(
+    const job = (await PrintJob.findOneAndUpdate(
       { _id: id, restaurantId: device.restaurantId, status: 'claimed', claimedBy: device.id },
       { $set: changes },
       { new: true },
-    ).lean() as any;
+    ).lean()) as any;
     if (!job) throw new UserError('Bon introuvable ou réclamé par un autre poste.', 409);
 
     if (body.result === 'failed' && job.attempts >= 5) {
@@ -37,4 +41,4 @@ async function handlePOST(request: Request, { params }: { params: Promise<{ id: 
   });
 }
 
-export const POST = withAudit("POST /api/print-jobs/[id]", handlePOST);
+export const POST = withAudit('POST /api/print-jobs/[id]', handlePOST);

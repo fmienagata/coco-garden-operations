@@ -15,4 +15,4 @@ async function handleGET(_request: Request, { params }: { params: Promise<{ id: 
   });
 }
 
-export const GET = withAudit("GET /api/stations/[id]/queue", handleGET);
+export const GET = withAudit('GET /api/stations/[id]/queue', handleGET);

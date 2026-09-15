@@ -3,7 +3,13 @@ const assert = require('node:assert/strict');
 const { routeItems, renderTicket, printJobId } = require('../src/lib/kitchen-routing.ts');
 
 const station = (id, name, categories, extra = {}) => ({
-  id, name, destination: 'imprimante', categories, isDefault: false, printerWidth: 42, ...extra,
+  id,
+  name,
+  destination: 'imprimante',
+  categories,
+  isDefault: false,
+  printerWidth: 42,
+  ...extra,
 });
 const cuisine = station('c', 'Cuisine', ['Plats', 'Entrées'], { isDefault: true, categories: [] });
 const bar = station('b', 'Bar', ['Boissons']);
@@ -44,7 +50,10 @@ test('sans poste par défaut, une catégorie inconnue n’est routée nulle part
 
 test('les lignes gardent leur ordre de saisie dans le poste', () => {
   const routed = routeItems([item('Entrée', 'Plats'), item('Plat', 'Plats'), item('Dessert', 'Plats')], [cuisine]);
-  assert.deepEqual(routed[0].items.map((line) => line.name), ['Entrée', 'Plat', 'Dessert']);
+  assert.deepEqual(
+    routed[0].items.map((line) => line.name),
+    ['Entrée', 'Plat', 'Dessert'],
+  );
 });
 
 test('le bon annonce le poste, la table et le numéro', () => {
@@ -59,7 +68,10 @@ test('le bon annonce le poste, la table et le numéro', () => {
 
 test('aucun prix ne figure sur un bon de préparation', () => {
   const lines = renderTicket(source, cuisine, [item('Poulet DG', 'Plats', 2)]);
-  assert.ok(!lines.some((line) => /\d{3,}/.test(line.text.replace('CMD-S1-00042', ''))), 'Un bon de cuisine ne porte pas de montant');
+  assert.ok(
+    !lines.some((line) => /\d{3,}/.test(line.text.replace('CMD-S1-00042', ''))),
+    'Un bon de cuisine ne porte pas de montant',
+  );
 });
 
 test('un nom trop long est replié sans être tronqué', () => {
@@ -68,7 +80,10 @@ test('un nom trop long est replié sans être tronqué', () => {
   const lines = renderTicket(source, narrow, [{ name: long, qty: 1, price: 0 }]);
   const body = lines.filter((line) => line.style === 'article').map((line) => line.text);
   assert.ok(body.length > 1, 'Le nom doit passer à la ligne');
-  assert.ok(body.every((line) => line.length <= 20), 'Aucune ligne ne doit dépasser la largeur du papier');
+  assert.ok(
+    body.every((line) => line.length <= 20),
+    'Aucune ligne ne doit dépasser la largeur du papier',
+  );
   assert.equal(body.join(' ').replace(/\s+/g, ' ').trim(), `1x ${long}`, 'Aucun mot ne doit être perdu');
 });
 
@@ -78,14 +93,20 @@ test('les consignes de table sont reportées sur le bon', () => {
 });
 
 test('une commande à emporter ne porte pas de table', () => {
-  const lines = renderTicket({ ...source, fulfillmentType: 'takeaway', tableNumber: undefined }, cuisine, [item('Poulet DG', 'Plats')]);
+  const lines = renderTicket({ ...source, fulfillmentType: 'takeaway', tableNumber: undefined }, cuisine, [
+    item('Poulet DG', 'Plats'),
+  ]);
   const text = lines.map((line) => line.text);
   assert.ok(text.includes('A EMPORTER'));
   assert.ok(!text.some((line) => line.startsWith('TABLE')));
 });
 
 test('une livraison rappelle l’adresse au poste', () => {
-  const lines = renderTicket({ ...source, fulfillmentType: 'delivery', deliveryAddress: 'Avenue Moe Vangoula, face a la Direction de la Peche' }, cuisine, [item('Poulet DG', 'Plats')]);
+  const lines = renderTicket(
+    { ...source, fulfillmentType: 'delivery', deliveryAddress: 'Avenue Moe Vangoula, face a la Direction de la Peche' },
+    cuisine,
+    [item('Poulet DG', 'Plats')],
+  );
   assert.ok(lines.some((line) => line.text.includes('Vangoula')));
 });
 

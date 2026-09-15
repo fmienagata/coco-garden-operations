@@ -12,10 +12,14 @@ async function handlePUT(request: Request, { params }: { params: Promise<{ id: s
     const { id } = await params;
     if (!mongoose.isValidObjectId(id)) throw new UserError('Identifiant invalide.');
     await connectMongo();
-    const driver = await Driver.findOneAndUpdate({ _id: id, restaurantId: session.restaurantId }, { $set: { available } }, { new: true }).lean();
+    const driver = await Driver.findOneAndUpdate(
+      { _id: id, restaurantId: session.restaurantId },
+      { $set: { available } },
+      { new: true },
+    ).lean();
     if (!driver) throw new UserError('Driver not found', 404);
     return Response.json(driver);
   });
 }
 
-export const PUT = withAudit("PUT /api/drivers/[id]", handlePUT);
+export const PUT = withAudit('PUT /api/drivers/[id]', handlePUT);

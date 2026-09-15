@@ -29,7 +29,17 @@ async function main() {
   for (const [sortOrder, [name, fee]] of zones.entries()) {
     const result = await collection.updateOne(
       { restaurantId, name },
-      { $setOnInsert: { restaurantId, name, fee, active: true, sortOrder, createdAt: new Date(), updatedAt: new Date() } },
+      {
+        $setOnInsert: {
+          restaurantId,
+          name,
+          fee,
+          active: true,
+          sortOrder,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      },
       { upsert: true },
     );
     if (result.upsertedCount) inserted += 1;
@@ -37,4 +47,9 @@ async function main() {
   console.log(`${inserted} zones de livraison ajoutées pour ${restaurantId}.`);
 }
 
-main().catch((error) => { console.error(error); process.exitCode = 1; }).finally(() => mongoose.disconnect());
+main()
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(() => mongoose.disconnect());

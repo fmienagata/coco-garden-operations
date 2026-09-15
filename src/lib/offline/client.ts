@@ -2,8 +2,14 @@
 
 import { readState, writeState, readQueue, addToQueue, replaceQueue, storageAvailable } from './db';
 import {
-  takeNumber, needsLease, remainingNumbers, reconcile, newOperationId,
-  type Lease, type PendingOperation, type SyncResult,
+  takeNumber,
+  needsLease,
+  remainingNumbers,
+  reconcile,
+  newOperationId,
+  type Lease,
+  type PendingOperation,
+  type SyncResult,
 } from './core';
 
 const DEVICE_KEY = 'deviceToken';
@@ -21,12 +27,26 @@ export type QueueSnapshot = {
   lastRejections: { opId: string; error: string }[];
 };
 
-let snapshot: QueueSnapshot = { ready: false, enrolled: false, pending: [], numbersLeft: 0, lastSync: null, lastRejections: [] };
+let snapshot: QueueSnapshot = {
+  ready: false,
+  enrolled: false,
+  pending: [],
+  numbersLeft: 0,
+  lastSync: null,
+  lastRejections: [],
+};
 const listeners = new Set<() => void>();
 let flushing: Promise<void> | null = null;
 
-export function getSnapshot() { return snapshot; }
-export function subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; }
+export function getSnapshot() {
+  return snapshot;
+}
+export function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
 
 function publish(patch: Partial<QueueSnapshot>) {
   snapshot = { ...snapshot, ...patch };
@@ -44,7 +64,10 @@ async function refresh() {
 }
 
 export async function start() {
-  if (!storageAvailable()) { publish({ ready: true }); return; }
+  if (!storageAvailable()) {
+    publish({ ready: true });
+    return;
+  }
   await refresh();
   await flush();
 }
@@ -81,7 +104,9 @@ export async function fetchDevice() {
     const response = await fetch('/api/number-leases', { headers, cache: 'no-store' });
     if (!response.ok) return null;
     return (await response.json()).device as { name: string; kind: string; numberPrefix: string };
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 // --- Réserve de numéros ------------------------------------------------------------------
@@ -98,13 +123,22 @@ export async function ensureLeases(threshold = 20) {
   const leases = await readState<Lease[]>(LEASES_KEY, []);
   if (!needsLease(leases, threshold)) return;
   try {
-    const response = await fetch('/api/number-leases', { method: 'POST', headers, body: JSON.stringify({ size: 100 }) });
+    const response = await fetch('/api/number-leases', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ size: 100 }),
+    });
     if (!response.ok) return;
     const lease = await response.json();
     const kept = leases.filter((item) => item.next <= item.end);
-    await writeState(LEASES_KEY, [...kept, { prefix: lease.prefix, start: lease.start, end: lease.end, next: lease.start }]);
+    await writeState(LEASES_KEY, [
+      ...kept,
+      { prefix: lease.prefix, start: lease.start, end: lease.end, next: lease.start },
+    ]);
     await refresh();
-  } catch { /* Hors ligne : la réserve actuelle doit suffire jusqu'au retour du réseau. */ }
+  } catch {
+    /* Hors ligne : la réserve actuelle doit suffire jusqu'au retour du réseau. */
+  }
 }
 
 // --- File d'opérations -------------------------------------------------------------------
@@ -165,18 +199,30 @@ export async function flush(): Promise<void> {
       const headers = await deviceHeaders();
       if (!headers) return;
       const pending = await readQueue<PendingOperation>();
-      if (pending.length === 0) { await ensureLeases(); return; }
+      if (pending.length === 0) {
+        await ensureLeases();
+        return;
+      }
 
-      const batch = pending.slice(0, 200).map(({ opId, type, payload, producedAt }) => ({ opId, type, payload, producedAt }));
-      const response = await fetch('/api/sync', { method: 'POST', headers, body: JSON.stringify({ operations: batch }) });
+      const batch = pending
+        .slice(0, 200)
+        .map(({ opId, type, payload, producedAt }) => ({ opId, type, payload, producedAt }));
+      const response = await fetch('/api/sync', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ operations: batch }),
+      });
       if (!response.ok) return;
 
-      const { results } = await response.json() as { results: SyncResult[] };
+      const { results } = (await response.json()) as { results: SyncResult[] };
       const outcome = reconcile(pending, results);
       await replaceQueue(outcome.remaining);
       await writeState(LAST_SYNC_KEY, new Date().toISOString());
       publish({
-        lastRejections: outcome.rejected.map((item) => ({ opId: item.operation.opId, error: item.result.error || 'Refusé.' })),
+        lastRejections: outcome.rejected.map((item) => ({
+          opId: item.operation.opId,
+          error: item.result.error || 'Refusé.',
+        })),
       });
       await refresh();
       await ensureLeases();

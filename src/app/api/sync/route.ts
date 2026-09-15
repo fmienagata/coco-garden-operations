@@ -24,14 +24,17 @@ async function handlePOST(request: Request) {
     }
     const body = await readJson(request);
     const results = await applyOperations({ device, session }, body.operations);
-    return Response.json({
-      device: device.numberPrefix,
-      applied: results.filter((item) => item.status === 'applied').length,
-      duplicates: results.filter((item) => item.status === 'duplicate').length,
-      rejected: results.filter((item) => item.status === 'rejected').length,
-      retry: results.filter((item) => item.status === 'retry').length,
-      results,
-    }, { headers: { 'Cache-Control': 'no-store' } });
+    return Response.json(
+      {
+        device: device.numberPrefix,
+        applied: results.filter((item) => item.status === 'applied').length,
+        duplicates: results.filter((item) => item.status === 'duplicate').length,
+        rejected: results.filter((item) => item.status === 'rejected').length,
+        retry: results.filter((item) => item.status === 'retry').length,
+        results,
+      },
+      { headers: { 'Cache-Control': 'no-store' } },
+    );
   });
 }
 
@@ -42,10 +45,16 @@ async function handleGET(request: Request) {
     const device = await requireDevice(request);
     await connectMongo();
     const applied = await Operation.find({ restaurantId: device.restaurantId, deviceId: device.id })
-      .sort({ appliedAt: -1 }).limit(100).select('opId type status resultId resultNumber error appliedAt').lean();
-    return Response.json({ maxBatch: MAX_BATCH, types: OPERATION_TYPES, operations: applied }, { headers: { 'Cache-Control': 'no-store' } });
+      .sort({ appliedAt: -1 })
+      .limit(100)
+      .select('opId type status resultId resultNumber error appliedAt')
+      .lean();
+    return Response.json(
+      { maxBatch: MAX_BATCH, types: OPERATION_TYPES, operations: applied },
+      { headers: { 'Cache-Control': 'no-store' } },
+    );
   });
 }
 
-export const GET = withAudit("GET /api/sync", handleGET);
-export const POST = withAudit("POST /api/sync", handlePOST);
+export const GET = withAudit('GET /api/sync', handleGET);
+export const POST = withAudit('POST /api/sync', handlePOST);

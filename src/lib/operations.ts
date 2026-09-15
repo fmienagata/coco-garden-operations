@@ -18,11 +18,15 @@ const OP_ID = /^[A-Za-z0-9_-]{16,64}$/;
 const TERMINAL = ['completed', 'cancelled'];
 
 export type OperationContext = { device: DeviceIdentity; session: ApiSession };
-type Handler = (context: OperationContext, payload: Record<string, any>, opId: string) => Promise<{ resultId: string; resultNumber?: string }>;
+type Handler = (
+  context: OperationContext,
+  payload: Record<string, any>,
+  opId: string,
+) => Promise<{ resultId: string; resultNumber?: string }>;
 
 async function loadOrder(restaurantId: string, id: unknown) {
   if (!mongoose.isValidObjectId(id)) throw new UserError('Identifiant de commande invalide.');
-  const order = await Order.findOne({ _id: id, restaurantId }).lean() as any;
+  const order = (await Order.findOne({ _id: id, restaurantId }).lean()) as any;
   if (!order) throw new UserError('Commande introuvable.', 404);
   return order;
 }
@@ -33,13 +37,17 @@ const handlers: Record<string, Handler> = {
   // Prise de commande à emporter ou en livraison, produite hors ligne.
   'order.create': async ({ device, session }, payload, opId) => {
     const orderNumber = await assertNumberIsLeased(session.restaurantId, device, payload.orderNumber);
-    const { order } = await createIntakeOrder({
-      restaurantId: session.restaurantId,
-      createdBy: session.login,
-      createdByType: 'management',
-      createdByLabel: `${device.name} · ${session.login}`,
-      // Le numéro issu du bail sert aussi de clé d'idempotence métier.
-    }, payload, { orderNumber, requestKey: `op-${opId}` });
+    const { order } = await createIntakeOrder(
+      {
+        restaurantId: session.restaurantId,
+        createdBy: session.login,
+        createdByType: 'management',
+        createdByLabel: `${device.name} · ${session.login}`,
+        // Le numéro issu du bail sert aussi de clé d'idempotence métier.
+      },
+      payload,
+      { orderNumber, requestKey: `op-${opId}` },
+    );
     return { resultId: String(order._id), resultNumber: String(order.orderNumber) };
   },
 
@@ -48,12 +56,13 @@ const handlers: Record<string, Handler> = {
     const order = await loadOrder(session.restaurantId, payload.orderId);
     if (TERMINAL.includes(order.status)) throw new UserError('Cette commande est clôturée.', 409);
     const allowed = preparation[order.status];
-    if (!allowed || payload.status !== allowed) throw new UserError(`Transition impossible : la commande est déjà « ${order.status} ».`, 409);
-    const changed = await Order.findOneAndUpdate(
+    if (!allowed || payload.status !== allowed)
+      throw new UserError(`Transition impossible : la commande est déjà « ${order.status} ».`, 409);
+    const changed = (await Order.findOneAndUpdate(
       { _id: order._id, restaurantId: session.restaurantId, status: order.status, __v: order.__v },
       { $set: { status: allowed }, $inc: { __v: 1 } },
       { new: true },
-    ).lean() as any;
+    ).lean()) as any;
     if (!changed) throw new UserError('Commande modifiée entre-temps.', 409);
     // Une confirmation rejouée après coupure produit le bon : l'identifiant déterministe
     // du bon empêche qu'un second rejeu le fasse sortir une deuxième fois.
@@ -65,9 +74,13 @@ const handlers: Record<string, Handler> = {
   'salle.ticket.create': async ({ device, session }, payload, opId) => {
     const orderNumber = await assertNumberIsLeased(session.restaurantId, device, payload.orderNumber);
     const requestKey = `op-${opId}`;
-    const existing = await Order.findOne({ restaurantId: session.restaurantId, requestKey }).lean() as any;
+    const existing = (await Order.findOne({ restaurantId: session.restaurantId, requestKey }).lean()) as any;
     if (existing) return { resultId: String(existing._id), resultNumber: String(existing.orderNumber) };
-    const table = await DiningTable.findOne({ _id: mongoose.isValidObjectId(payload.tableId) ? payload.tableId : null, restaurantId: session.restaurantId, active: true });
+    const table = await DiningTable.findOne({
+      _id: mongoose.isValidObjectId(payload.tableId) ? payload.tableId : null,
+      restaurantId: session.restaurantId,
+      active: true,
+    });
     if (!table) throw new UserError('Table indisponible.', 404);
     const info = details(payload);
     if (info.covers > table.capacity) throw new UserError('Le nombre de couverts dépasse la capacité de la table.');
@@ -95,11 +108,11 @@ const handlers: Record<string, Handler> = {
     const order = await loadOrder(session.restaurantId, payload.orderId);
     if (order.fulfillmentType !== 'dine_in') throw new UserError('Ce ticket n’appartient pas à la salle.', 409);
     if (order.status !== 'draft') throw new UserError('Ticket déjà envoyé.', 409);
-    const changed = await Order.findOneAndUpdate(
+    const changed = (await Order.findOneAndUpdate(
       { _id: order._id, restaurantId: session.restaurantId, status: 'draft', __v: order.__v },
       { $set: { status: 'confirmed' }, $inc: { __v: 1 } },
       { new: true },
-    ).lean() as any;
+    ).lean()) as any;
     if (!changed) throw new UserError('Ticket modifié entre-temps.', 409);
     await dispatchToKitchen(session.restaurantId, String(changed._id));
     return { resultId: String(changed._id), resultNumber: String(changed.orderNumber) };
@@ -111,11 +124,11 @@ const handlers: Record<string, Handler> = {
     if (order.fulfillmentType !== 'dine_in') throw new UserError('Ce ticket n’appartient pas à la salle.', 409);
     if (TERMINAL.includes(order.status)) throw new UserError('Ce ticket est clôturé.', 409);
     if (order.status !== 'ready') throw new UserError('La cuisine doit terminer la préparation.', 409);
-    const changed = await Order.findOneAndUpdate(
+    const changed = (await Order.findOneAndUpdate(
       { _id: order._id, restaurantId: session.restaurantId, status: 'ready', __v: order.__v },
       { $set: { status: 'served', servedAt: new Date() }, $inc: { __v: 1 } },
       { new: true },
-    ).lean() as any;
+    ).lean()) as any;
     if (!changed) throw new UserError('Ticket modifié entre-temps.', 409);
     return { resultId: String(changed._id), resultNumber: String(changed.orderNumber) };
   },
@@ -147,19 +160,32 @@ export async function applyOperations(context: OperationContext, operations: unk
     const operation = raw as Record<string, any>;
     const opId = operation?.opId;
     if (typeof opId !== 'string' || !OP_ID.test(opId)) {
-      results.push({ opId: typeof opId === 'string' ? opId : null, status: 'rejected', error: 'Identifiant d’opération invalide.' });
+      results.push({
+        opId: typeof opId === 'string' ? opId : null,
+        status: 'rejected',
+        error: 'Identifiant d’opération invalide.',
+      });
       continue;
     }
 
     const recordId = `${context.session.restaurantId}:${opId}`;
-    const known = await Operation.findById(recordId).lean() as any;
+    const known = (await Operation.findById(recordId).lean()) as any;
     if (known) {
-      results.push({ opId, status: known.status === 'applied' ? 'duplicate' : 'rejected', resultId: known.resultId, resultNumber: known.resultNumber, error: known.error });
+      results.push({
+        opId,
+        status: known.status === 'applied' ? 'duplicate' : 'rejected',
+        resultId: known.resultId,
+        resultNumber: known.resultNumber,
+        error: known.error,
+      });
       continue;
     }
 
     const handler = handlers[operation.type];
-    const producedAt = typeof operation.producedAt === 'string' && Number.isFinite(Date.parse(operation.producedAt)) ? new Date(operation.producedAt) : null;
+    const producedAt =
+      typeof operation.producedAt === 'string' && Number.isFinite(Date.parse(operation.producedAt))
+        ? new Date(operation.producedAt)
+        : null;
     const base = {
       _id: recordId,
       restaurantId: context.session.restaurantId,
@@ -179,7 +205,12 @@ export async function applyOperations(context: OperationContext, operations: unk
 
     try {
       const outcome = await handler(context, (operation.payload || {}) as Record<string, any>, opId);
-      await Operation.create({ ...base, status: 'applied', resultId: outcome.resultId, resultNumber: outcome.resultNumber || null });
+      await Operation.create({
+        ...base,
+        status: 'applied',
+        resultId: outcome.resultId,
+        resultNumber: outcome.resultNumber || null,
+      });
       results.push({ opId, status: 'applied', resultId: outcome.resultId, resultNumber: outcome.resultNumber });
     } catch (error: any) {
       // Une panne d'infrastructure doit pouvoir être retentée ; une règle métier violée, non.

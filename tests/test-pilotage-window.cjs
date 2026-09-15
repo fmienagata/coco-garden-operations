@@ -12,7 +12,13 @@ const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:3001';
 const restaurantId = process.env.RESTAURANT_ID || 'coco-garden';
 
 const days = (count) => new Date(Date.now() - count * 24 * 60 * 60 * 1000);
-const localDay = (date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Brazzaville', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+const localDay = (date) =>
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Brazzaville',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
 
 async function call(path, method = 'GET', body, headers = {}) {
   const response = await fetch(base + path, {
@@ -22,7 +28,11 @@ async function call(path, method = 'GET', body, headers = {}) {
   });
   const text = await response.text();
   let data = null;
-  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
+  }
   return { status: response.status, data, cookie: response.headers.get('set-cookie')?.split(';')[0] || '' };
 }
 
@@ -32,15 +42,29 @@ async function plant(order, settlement) {
   const id = new mongoose.Types.ObjectId();
   planted.orders.push(id);
   await mongoose.connection.collection('orders').insertOne({
-    _id: id, restaurantId, createdBy: 'test', createdByType: 'management', createdByLabel: 'Test fenetre',
-    fulfillmentType: 'takeaway', items: [{ name: 'Plat fenetre', qty: 1, price: order.total }],
-    total: order.total, isDemo: false, __v: 0, ...order,
+    _id: id,
+    restaurantId,
+    createdBy: 'test',
+    createdByType: 'management',
+    createdByLabel: 'Test fenetre',
+    fulfillmentType: 'takeaway',
+    items: [{ name: 'Plat fenetre', qty: 1, price: order.total }],
+    total: order.total,
+    isDemo: false,
+    __v: 0,
+    ...order,
   });
   if (settlement) {
     const key = `${restaurantId}:${id}`;
     planted.settlements.push(key);
     await mongoose.connection.collection('settlements').insertOne({
-      _id: key, restaurantId, orderId: String(id), amount: order.total, method: 'cash', paidBy: 'test', ...settlement,
+      _id: key,
+      restaurantId,
+      orderId: String(id),
+      amount: order.total,
+      method: 'cash',
+      paidBy: 'test',
+      ...settlement,
     });
   }
   return id;
@@ -48,7 +72,10 @@ async function plant(order, settlement) {
 
 (async () => {
   await mongoose.connect(process.env.MONGO_URI);
-  const admin = await call('/api/auth/login', 'POST', { login: process.env.CUISINE_LOGIN, password: process.env.CUISINE_PASSWORD });
+  const admin = await call('/api/auth/login', 'POST', {
+    login: process.env.CUISINE_LOGIN,
+    password: process.env.CUISINE_PASSWORD,
+  });
   assert.equal(admin.status, 200, 'Connexion admin impossible');
   const auth = { Cookie: admin.cookie };
 
@@ -78,12 +105,19 @@ async function plant(order, settlement) {
   assert.ok(report.data.summary.sales >= 9000, 'Une vente finalisee du jour doit etre comptee');
 
   const paidEarlier = rows.find((row) => row.orderNumber === `W2-${suffix}`);
-  assert.ok(paidEarlier.settlement && paidEarlier.settlement.paidAt, 'L encaissement anterieur doit etre joint a la commande');
+  assert.ok(
+    paidEarlier.settlement && paidEarlier.settlement.paidAt,
+    'L encaissement anterieur doit etre joint a la commande',
+  );
 
   // Le montant de la commande payee avant la periode ne doit pas gonfler les impayes.
   const olderReport = await call(`/api/pilotage?from=${today}&to=${today}`, 'GET', undefined, auth);
-  assert.ok(!String(olderReport.data.summary.unpaid).includes('9000') || olderReport.data.summary.unpaid < 9000
-    || paidEarlier.settlement.paidAt, 'Une commande deja payee ne doit pas figurer en impaye');
+  assert.ok(
+    !String(olderReport.data.summary.unpaid).includes('9000') ||
+      olderReport.data.summary.unpaid < 9000 ||
+      paidEarlier.settlement.paidAt,
+    'Une commande deja payee ne doit pas figurer en impaye',
+  );
 
   for (const id of planted.orders) await mongoose.connection.collection('orders').deleteOne({ _id: id });
   for (const id of planted.settlements) await mongoose.connection.collection('settlements').deleteOne({ _id: id });
@@ -95,6 +129,8 @@ async function plant(order, settlement) {
     for (const id of planted.orders) await mongoose.connection.collection('orders').deleteOne({ _id: id });
     for (const id of planted.settlements) await mongoose.connection.collection('settlements').deleteOne({ _id: id });
     await mongoose.disconnect();
-  } catch { /* nettoyage au mieux */ }
+  } catch {
+    /* nettoyage au mieux */
+  }
   process.exitCode = 1;
 });

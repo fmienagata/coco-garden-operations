@@ -20,7 +20,7 @@ const MODE = process.env.PRINT_AGENT_OUTPUT || 'imprimante';
 const INTERVAL = Number(process.env.PRINT_AGENT_INTERVAL || 3000);
 
 if (!TOKEN) {
-  console.error('PRINT_AGENT_TOKEN est requis : c\'est le jeton du poste caisse, remis à l\'enrôlement.');
+  console.error("PRINT_AGENT_TOKEN est requis : c'est le jeton du poste caisse, remis à l'enrôlement.");
   process.exit(1);
 }
 
@@ -32,16 +32,43 @@ const GS = 0x1d;
 // Les imprimantes thermiques ne parlent pas UTF-8. On sélectionne la page de codes 850,
 // la plus largement supportée, et on convertit les caractères français correspondants.
 const CP850 = {
-  'é': 0x82, 'è': 0x8a, 'ê': 0x88, 'ë': 0x89, 'à': 0x85, 'â': 0x83, 'ä': 0x84,
-  'ç': 0x87, 'î': 0x8c, 'ï': 0x8b, 'ô': 0x93, 'ö': 0x94, 'ù': 0x97, 'û': 0x96,
-  'ü': 0x81, 'É': 0x90, 'È': 0xd4, 'Ê': 0xd2, 'À': 0xb7, 'Ç': 0x80, 'Ô': 0xe2,
-  '«': 0xae, '»': 0xaf, '°': 0xf8, '·': 0xfa, '’': 0x27, '—': 0x2d, '–': 0x2d,
+  é: 0x82,
+  è: 0x8a,
+  ê: 0x88,
+  ë: 0x89,
+  à: 0x85,
+  â: 0x83,
+  ä: 0x84,
+  ç: 0x87,
+  î: 0x8c,
+  ï: 0x8b,
+  ô: 0x93,
+  ö: 0x94,
+  ù: 0x97,
+  û: 0x96,
+  ü: 0x81,
+  É: 0x90,
+  È: 0xd4,
+  Ê: 0xd2,
+  À: 0xb7,
+  Ç: 0x80,
+  Ô: 0xe2,
+  '«': 0xae,
+  '»': 0xaf,
+  '°': 0xf8,
+  '·': 0xfa,
+  '’': 0x27,
+  '—': 0x2d,
+  '–': 0x2d,
 };
 
 function encodeText(text) {
   const bytes = [];
   for (const character of text) {
-    if (CP850[character] !== undefined) { bytes.push(CP850[character]); continue; }
+    if (CP850[character] !== undefined) {
+      bytes.push(CP850[character]);
+      continue;
+    }
     const code = character.charCodeAt(0);
     // Un caractère hors table sort en point d'interrogation plutôt qu'en octet illisible.
     bytes.push(code < 128 ? code : 0x3f);
@@ -78,7 +105,10 @@ function sendToPrinter(host, port, payload) {
     const socket = net.createConnection({ host, port, timeout: 8000 });
     socket.on('connect', () => socket.end(payload));
     socket.on('close', () => resolve());
-    socket.on('timeout', () => { socket.destroy(); reject(new Error(`Imprimante ${host}:${port} ne répond pas`)); });
+    socket.on('timeout', () => {
+      socket.destroy();
+      reject(new Error(`Imprimante ${host}:${port} ne répond pas`));
+    });
     socket.on('error', (error) => reject(error));
   });
 }

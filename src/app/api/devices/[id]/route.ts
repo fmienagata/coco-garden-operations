@@ -16,7 +16,8 @@ async function handlePATCH(request: Request, { params }: { params: Promise<{ id:
     const body = await readJson(request);
     const changes: Record<string, unknown> = {};
     if (body.name !== undefined) {
-      if (typeof body.name !== 'string' || !body.name.trim() || body.name.length > 60) throw new UserError('Nom de poste invalide.');
+      if (typeof body.name !== 'string' || !body.name.trim() || body.name.length > 60)
+        throw new UserError('Nom de poste invalide.');
       changes.name = body.name.trim();
     }
     if (body.active !== undefined) {
@@ -32,7 +33,13 @@ async function handlePATCH(request: Request, { params }: { params: Promise<{ id:
     }
     if (!Object.keys(changes).length) throw new UserError('Aucune modification fournie.');
     await connectMongo();
-    const device = await Device.findOneAndUpdate({ _id: id, restaurantId: session.restaurantId, deletedAt: null }, { $set: changes }, { new: true }).select(deviceFields).lean() as Record<string, unknown> | null;
+    const device = (await Device.findOneAndUpdate(
+      { _id: id, restaurantId: session.restaurantId, deletedAt: null },
+      { $set: changes },
+      { new: true },
+    )
+      .select(deviceFields)
+      .lean()) as Record<string, unknown> | null;
     if (!device) throw new UserError('Poste introuvable.', 404);
     return Response.json(token ? { ...device, token } : device);
   });
@@ -45,11 +52,15 @@ async function handleDELETE(_request: Request, { params }: { params: Promise<{ i
     if (!mongoose.isValidObjectId(id)) throw new UserError('Identifiant invalide.');
     await connectMongo();
     // Retrait logique : le préfixe reste réservé pour que les numéros déjà émis restent lisibles.
-    const device = await Device.findOneAndUpdate({ _id: id, restaurantId: session.restaurantId, deletedAt: null }, { $set: { active: false, deletedAt: new Date(), tokenHash: 'revoked' } }, { new: true });
+    const device = await Device.findOneAndUpdate(
+      { _id: id, restaurantId: session.restaurantId, deletedAt: null },
+      { $set: { active: false, deletedAt: new Date(), tokenHash: 'revoked' } },
+      { new: true },
+    );
     if (!device) throw new UserError('Poste introuvable.', 404);
     return new Response(null, { status: 204 });
   });
 }
 
-export const PATCH = withAudit("PATCH /api/devices/[id]", handlePATCH);
-export const DELETE = withAudit("DELETE /api/devices/[id]", handleDELETE);
+export const PATCH = withAudit('PATCH /api/devices/[id]', handlePATCH);
+export const DELETE = withAudit('DELETE /api/devices/[id]', handleDELETE);

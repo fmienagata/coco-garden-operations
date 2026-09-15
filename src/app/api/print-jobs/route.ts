@@ -41,4 +41,4 @@ async function handleGET(request: Request) {
   });
 }
 
-export const GET = withAudit("GET /api/print-jobs", handleGET);
+export const GET = withAudit('GET /api/print-jobs', handleGET);

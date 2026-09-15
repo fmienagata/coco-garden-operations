@@ -21,14 +21,27 @@ async function handlePOST(request: Request, { params }: { params: Promise<{ id: 
     const { id } = await params;
     if (!mongoose.isValidObjectId(id)) throw new UserError('Identifiant invalide.');
     await connectMongo();
-    const order = await Order.findOne({ _id: id, restaurantId: session.restaurantId, fulfillmentType: 'delivery' }).lean() as { _id: unknown; status: string; __v: number } | null;
+    const order = (await Order.findOne({
+      _id: id,
+      restaurantId: session.restaurantId,
+      fulfillmentType: 'delivery',
+    }).lean()) as { _id: unknown; status: string; __v: number } | null;
     if (!order) throw new UserError('Delivery order not found', 404);
-    if (order.status !== transition.from) throw new UserError(action === 'assign' ? 'Only ready orders can be assigned' : 'Invalid delivery transition', 409);
+    if (order.status !== transition.from)
+      throw new UserError(
+        action === 'assign' ? 'Only ready orders can be assigned' : 'Invalid delivery transition',
+        409,
+      );
 
     const now = new Date();
     const changes: Record<string, unknown> = { status: transition.status, [transition.field]: now };
     if (action === 'assign') {
-      const driver = await Driver.findOne({ _id: mongoose.isValidObjectId(driverId) ? driverId : null, restaurantId: session.restaurantId, active: true, available: true }).lean() as { _id: unknown; name: string; phone: string } | null;
+      const driver = (await Driver.findOne({
+        _id: mongoose.isValidObjectId(driverId) ? driverId : null,
+        restaurantId: session.restaurantId,
+        active: true,
+        available: true,
+      }).lean()) as { _id: unknown; name: string; phone: string } | null;
       if (!driver) throw new UserError('Active driver not found');
       changes.driverId = String(driver._id);
       changes.driverName = driver.name;
@@ -47,4 +60,4 @@ async function handlePOST(request: Request, { params }: { params: Promise<{ id: 
   });
 }
 
-export const POST = withAudit("POST /api/delivery/[id]", handlePOST);
+export const POST = withAudit('POST /api/delivery/[id]', handlePOST);

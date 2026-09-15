@@ -6,11 +6,15 @@ function withEnv(vars, run) {
   const saved = {};
   for (const [key, value] of Object.entries(vars)) {
     saved[key] = process.env[key];
-    if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
   }
-  try { return run(); } finally {
+  try {
+    return run();
+  } finally {
     for (const [key, value] of Object.entries(saved)) {
-      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
     }
   }
 }
@@ -45,7 +49,8 @@ test('une élévation de rôle dans la charge utile invalide la session', () => 
 
 test('une session signée avec un autre secret est rejetée', () => {
   const token = withEnv({ AUTH_SECRET: 'secret-de-l-attaquant' }, () =>
-    auth.createSession('admin', 'coco-garden', 'admin'));
+    auth.createSession('admin', 'coco-garden', 'admin'),
+  );
   withEnv({ AUTH_SECRET: 'secret-du-serveur' }, () => {
     assert.equal(auth.isValidSession(token), false);
   });

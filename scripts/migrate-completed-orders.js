@@ -18,14 +18,17 @@ async function main() {
   await mongoose.connect(process.env.MONGO_URI);
   const orders = mongoose.connection.collection('orders');
   const settlements = mongoose.connection.collection('settlements');
-  const candidates = await orders.find({
-    restaurantId,
-    status: { $in: ['delivered', 'collected', 'served'] },
-  }).toArray();
+  const candidates = await orders
+    .find({
+      restaurantId,
+      status: { $in: ['delivered', 'collected', 'served'] },
+    })
+    .toArray();
   let migrated = 0;
   for (const order of candidates) {
     const settlement = await settlements.findOne({ restaurantId, orderId: String(order._id) });
-    const completedAt = order.completedAt || order.deliveredAt || settlement?.collectedAt || settlement?.paidAt || order.servedAt;
+    const completedAt =
+      order.completedAt || order.deliveredAt || settlement?.collectedAt || settlement?.paidAt || order.servedAt;
     if (!completedAt) continue;
     const result = await orders.updateOne(
       { _id: order._id, restaurantId, status: order.status },
@@ -36,4 +39,9 @@ async function main() {
   console.log(`Migration terminée pour ${restaurantId}: ${migrated} commande(s) basculée(s) vers completed.`);
 }
 
-main().catch((error) => { console.error(error.message || error); process.exitCode = 1; }).finally(() => mongoose.disconnect());
+main()
+  .catch((error) => {
+    console.error(error.message || error);
+    process.exitCode = 1;
+  })
+  .finally(() => mongoose.disconnect());

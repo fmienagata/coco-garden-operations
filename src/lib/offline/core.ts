@@ -107,7 +107,8 @@ export function mergePending(serverOrders: OrderView[], pending: PendingOperatio
         _id: `pending:${operation.opId}`,
         orderNumber: operation.payload.orderNumber,
         status: operation.type === 'salle.ticket.create' ? 'draft' : 'pending',
-        fulfillmentType: operation.type === 'salle.ticket.create' ? 'dine_in' : (operation.payload.fulfillmentType || 'takeaway'),
+        fulfillmentType:
+          operation.type === 'salle.ticket.create' ? 'dine_in' : operation.payload.fulfillmentType || 'takeaway',
         items: operation.payload.items || [],
         total: 0,
         createdAt: operation.producedAt,
@@ -128,5 +129,7 @@ export function mergePending(serverOrders: OrderView[], pending: PendingOperatio
 
 /** Identifiant d'opération : aléatoire, et conforme à ce que la reprise accepte. */
 export function newOperationId(randomBytes: (size: number) => Uint8Array) {
-  return Array.from(randomBytes(13)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  return Array.from(randomBytes(13))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
 }

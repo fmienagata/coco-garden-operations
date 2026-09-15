@@ -53,4 +53,9 @@ async function main() {
   console.log(agent.upsertedCount ? 'Agent WhatsApp ajouté.' : 'Agent WhatsApp restauré avec son état actuel.');
 }
 
-main().catch((error) => { console.error(error.message); process.exitCode = 1; }).finally(() => mongoose.disconnect());
+main()
+  .catch((error) => {
+    console.error(error.message);
+    process.exitCode = 1;
+  })
+  .finally(() => mongoose.disconnect());

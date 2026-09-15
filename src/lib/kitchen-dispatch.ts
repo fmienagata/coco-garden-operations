@@ -6,7 +6,9 @@ import { connectMongo } from './db/mongo';
 import { routeItems, renderTicket, printJobId, type StationRoute, type RoutedItem } from './kitchen-routing';
 
 export async function loadStations(restaurantId: string): Promise<StationRoute[]> {
-  const stations = await PreparationStation.find({ restaurantId, active: true }).sort({ isDefault: 1, name: 1 }).lean() as any[];
+  const stations = (await PreparationStation.find({ restaurantId, active: true })
+    .sort({ isDefault: 1, name: 1 })
+    .lean()) as any[];
   return stations.map((station) => ({
     id: String(station._id),
     name: station.name,
@@ -29,7 +31,7 @@ export async function loadStations(restaurantId: string): Promise<StationRoute[]
 type CategoryIndex = { byCode: Map<string, string>; byName: Map<string, string> };
 
 async function categoryIndex(restaurantId: string): Promise<CategoryIndex> {
-  const menu = await MenuItem.find({ restaurantId }).select('itemCode category name').lean() as any[];
+  const menu = (await MenuItem.find({ restaurantId }).select('itemCode category name').lean()) as any[];
   return {
     byCode: new Map(menu.map((entry) => [entry.itemCode, entry.category])),
     byName: new Map(menu.map((entry) => [entry.name, entry.category])),
@@ -58,7 +60,7 @@ function withCategories(items: any[], index: CategoryIndex): RoutedItem[] {
 export async function dispatchToKitchen(restaurantId: string, orderId: string) {
   try {
     await connectMongo();
-    const order = await Order.findOne({ _id: orderId, restaurantId }).lean() as any;
+    const order = (await Order.findOne({ _id: orderId, restaurantId }).lean()) as any;
     if (!order) return { created: 0 };
 
     const stations = await loadStations(restaurantId);
@@ -117,10 +119,13 @@ export async function stationQueue(restaurantId: string, stationId: string) {
   const station = stations.find((entry) => entry.id === stationId);
   if (!station) return null;
 
-  const orders = await Order.find({
+  const orders = (await Order.find({
     restaurantId,
     status: { $in: ['confirmed', 'preparing', 'ready'] },
-  }).sort({ createdAt: 1 }).limit(100).lean() as any[];
+  })
+    .sort({ createdAt: 1 })
+    .limit(100)
+    .lean()) as any[];
 
   // Un seul chargement de la carte pour toute la file, quelle que soit sa longueur.
   const index = await categoryIndex(restaurantId);

@@ -23,7 +23,10 @@ async function main() {
   const Order = mongoose.connection.collection('orders');
   const Settlement = mongoose.connection.collection('settlements');
 
-  const menu = await MenuItem.find({ restaurantId, active: true }).sort({ category: 1, sortOrder: 1 }).limit(20).toArray();
+  const menu = await MenuItem.find({ restaurantId, active: true })
+    .sort({ category: 1, sortOrder: 1 })
+    .limit(20)
+    .toArray();
   if (!menu.length) {
     throw new Error('Aucun article actif dans la carte. Chargez d’abord la carte de démonstration.');
   }
@@ -195,10 +198,14 @@ async function main() {
     }
   }
 
-  console.log(`Données de test Salle créées pour ${restaurantId}. Tables: ${tableRows.length}. Commandes: ${seededOrders.length}.`);
+  console.log(
+    `Données de test Salle créées pour ${restaurantId}. Tables: ${tableRows.length}. Commandes: ${seededOrders.length}.`,
+  );
 }
 
-main().catch((error) => {
-  console.error(error.message || error);
-  process.exitCode = 1;
-}).finally(() => mongoose.disconnect());
+main()
+  .catch((error) => {
+    console.error(error.message || error);
+    process.exitCode = 1;
+  })
+  .finally(() => mongoose.disconnect());

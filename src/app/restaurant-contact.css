@@ -21,16 +21,44 @@
 .restaurant-contact h2 {
   margin: 0 0 6px;
   color: #e5c788;
-  font: 400 11px/1.5 Arial, Helvetica, sans-serif;
+  font:
+    400 11px/1.5 Arial,
+    Helvetica,
+    sans-serif;
   letter-spacing: 2.5px;
   text-transform: uppercase;
 }
-.restaurant-contact p, .restaurant-contact address { margin: 0; font-style: normal; }
-.restaurant-contact a { display: inline-flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; }
-.restaurant-contact a:hover { text-decoration: underline; }
-.restaurant-contact a:focus-visible { outline: 2px solid #e5c788; outline-offset: 5px; }
-.restaurant-contact svg { color: #25d366; flex-shrink: 0; }
+.restaurant-contact p,
+.restaurant-contact address {
+  margin: 0;
+  font-style: normal;
+}
+.restaurant-contact a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+.restaurant-contact a:hover {
+  text-decoration: underline;
+}
+.restaurant-contact a:focus-visible {
+  outline: 2px solid #e5c788;
+  outline-offset: 5px;
+}
+.restaurant-contact svg {
+  color: #25d366;
+  flex-shrink: 0;
+}
 @media (max-width: 540px) {
-  .restaurant-contact { padding: 24px 22px; }
-  .restaurant-contact__inner { flex-direction: column; align-items: flex-start; text-align: left; gap: 22px; }
+  .restaurant-contact {
+    padding: 24px 22px;
+  }
+  .restaurant-contact__inner {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    gap: 22px;
+  }
 }

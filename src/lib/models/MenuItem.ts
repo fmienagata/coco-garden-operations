@@ -9,7 +9,10 @@ const MenuItemSchema = new Schema(
     name: { type: String, required: true, trim: true },
     description: { type: String, trim: true, default: '' },
     price: { type: Number, required: true, min: 0 },
-    variants: { type: [{ label: { type: String, required: true }, price: { type: Number, required: true, min: 0 } }], default: [] },
+    variants: {
+      type: [{ label: { type: String, required: true }, price: { type: Number, required: true, min: 0 } }],
+      default: [],
+    },
     imageUrl: { type: String, trim: true, default: '' },
     active: { type: Boolean, default: true },
     sortOrder: { type: Number, default: 0 },

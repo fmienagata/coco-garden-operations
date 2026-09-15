@@ -1,61 +1,334 @@
-.offline-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 20px;font-size:14px;border-bottom:1px solid #dfe5dc;background:#efece1;color:#18372e}
-.offline-bar--offline{background:#3b2a22;color:#f6f5ef;border-bottom-color:#5a4438}
-.offline-bar--syncing{background:#e6ecdf}
-.offline-bar--warn{background:#f6e2d8}
-.offline-bar__dot{width:9px;height:9px;border-radius:50%;background:#e06b43;flex:none}
-.offline-bar--syncing .offline-bar__dot{background:#27734c}
-.offline-bar__meta{color:inherit;opacity:.72;font-size:13px}
-.offline-bar__link{margin-left:auto;color:inherit;font-size:13px}
+.offline-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 20px;
+  font-size: 14px;
+  border-bottom: 1px solid #dfe5dc;
+  background: #efece1;
+  color: #18372e;
+}
+.offline-bar--offline {
+  background: #3b2a22;
+  color: #f6f5ef;
+  border-bottom-color: #5a4438;
+}
+.offline-bar--syncing {
+  background: #e6ecdf;
+}
+.offline-bar--warn {
+  background: #f6e2d8;
+}
+.offline-bar__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #e06b43;
+  flex: none;
+}
+.offline-bar--syncing .offline-bar__dot {
+  background: #27734c;
+}
+.offline-bar__meta {
+  color: inherit;
+  opacity: 0.72;
+  font-size: 13px;
+}
+.offline-bar__link {
+  margin-left: auto;
+  color: inherit;
+  font-size: 13px;
+}
 
-.poste-shell{max-width:920px}
-.poste-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;padding:24px 0}
-.poste-tile{background:white;border:1px solid #dfe5dc;border-radius:12px;padding:18px}
-.poste-tile span{display:block;font-size:12px;letter-spacing:2px;color:#778c7d;text-transform:uppercase}
-.poste-tile strong{display:block;font-size:30px;margin-top:8px;line-height:1.1;font-variant-numeric:tabular-nums}
-.poste-tile small{display:block;color:#607167;font-size:13px;margin-top:6px}
-.poste-tile--alert{border-color:#e0a893;background:#fbf1ec}
+.poste-shell {
+  max-width: 920px;
+}
+.poste-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  padding: 24px 0;
+}
+.poste-tile {
+  background: white;
+  border: 1px solid #dfe5dc;
+  border-radius: 12px;
+  padding: 18px;
+}
+.poste-tile span {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: #778c7d;
+  text-transform: uppercase;
+}
+.poste-tile strong {
+  display: block;
+  font-size: 30px;
+  margin-top: 8px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.poste-tile small {
+  display: block;
+  color: #607167;
+  font-size: 13px;
+  margin-top: 6px;
+}
+.poste-tile--alert {
+  border-color: #e0a893;
+  background: #fbf1ec;
+}
 
-.poste-actions{display:flex;flex-wrap:wrap;gap:10px;padding-bottom:12px}
-.poste-section{padding:24px 0;border-top:1px solid #dfe5dc}
-.poste-section h2{margin:0 0 6px}
-.poste-list{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:8px}
-.poste-list li{display:flex;justify-content:space-between;align-items:baseline;gap:14px;background:white;border:1px solid #dfe5dc;border-radius:10px;padding:12px 14px;font-size:14px}
-.poste-list code{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:#607167}
-.poste-list--rejected li{border-color:#e0a893;background:#fbf1ec}
-.poste-rejected-reason{color:#b33d2c;font-size:13px}
-.poste-empty{color:#607167;font-size:14px;margin-top:14px}
-.danger-button{border:1px solid #e0a893;border-radius:8px;background:white;color:#b33d2c;padding:10px 14px;font:inherit;cursor:pointer}
+.poste-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-bottom: 12px;
+}
+.poste-section {
+  padding: 24px 0;
+  border-top: 1px solid #dfe5dc;
+}
+.poste-section h2 {
+  margin: 0 0 6px;
+}
+.poste-list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.poste-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 14px;
+  background: white;
+  border: 1px solid #dfe5dc;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+}
+.poste-list code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12px;
+  color: #607167;
+}
+.poste-list--rejected li {
+  border-color: #e0a893;
+  background: #fbf1ec;
+}
+.poste-rejected-reason {
+  color: #b33d2c;
+  font-size: 13px;
+}
+.poste-empty {
+  color: #607167;
+  font-size: 14px;
+  margin-top: 14px;
+}
+.danger-button {
+  border: 1px solid #e0a893;
+  border-radius: 8px;
+  background: white;
+  color: #b33d2c;
+  padding: 10px 14px;
+  font: inherit;
+  cursor: pointer;
+}
 
-@media(max-width:540px){.offline-bar{padding:10px 16px}.offline-bar__link{margin-left:0}}
+@media (max-width: 540px) {
+  .offline-bar {
+    padding: 10px 16px;
+  }
+  .offline-bar__link {
+    margin-left: 0;
+  }
+}
 
-.kitchen-station-picker{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.kitchen-station-picker label{display:flex;align-items:center;gap:8px;font-size:14px;color:#607167}
-.kitchen-station-picker select{border:1px solid #cbd7cb;border-radius:8px;padding:9px 10px;font:inherit;background:white;color:#18372e}
+.kitchen-station-picker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.kitchen-station-picker label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #607167;
+}
+.kitchen-station-picker select {
+  border: 1px solid #cbd7cb;
+  border-radius: 8px;
+  padding: 9px 10px;
+  font: inherit;
+  background: white;
+  color: #18372e;
+}
 
-.config-shell{max-width:980px}
-.config-notice{background:#e6ecdf;border-radius:8px;padding:12px 14px;font-size:14px;margin:0 0 8px}
-.config-token{background:#fbf1ec;border:1px solid #e0a893;border-radius:12px;padding:20px 22px;margin-bottom:8px}
-.config-token h2{margin:0 0 6px;font-size:20px}
-.config-token__value{display:block;font-family:ui-monospace,Consolas,monospace;font-size:13px;word-break:break-all;background:white;border:1px solid #e0cfc4;border-radius:8px;padding:12px;margin:14px 0}
-.config-list{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:10px}
-.config-list li{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;background:white;border:1px solid #dfe5dc;border-radius:12px;padding:14px 16px}
-.config-list li>div:first-child{display:grid;gap:3px;min-width:220px}
-.config-list strong{display:flex;align-items:center;gap:8px;font-size:16px}
-.config-list small{color:#607167;font-size:13px}
-.config-list__inactive{opacity:.55}
-.config-tag{background:#e6ecdf;border-radius:20px;padding:3px 9px;font-size:11px;font-weight:normal;letter-spacing:1px;text-transform:uppercase;color:#3d5c4e}
-.config-row-actions{display:flex;gap:8px;flex-wrap:wrap}
-.config-form{margin-top:26px;background:white;border:1px solid #dfe5dc;border-radius:12px;padding:20px 22px}
-.config-form h3{margin:0 0 16px;font-size:17px}
-.config-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
-.config-fields label{display:grid;gap:7px;font-size:14px;font-weight:bold}
-.config-fields input,.config-fields select{border:1px solid #cbd7cb;border-radius:8px;padding:11px;font:inherit;background:white;color:#18372e;font-weight:normal;width:100%}
-.config-check{display:flex;align-items:center;gap:9px;font-size:14px;color:#607167;margin-top:16px}
-.config-check input{width:17px;height:17px}
-.config-form .poste-actions{margin-top:18px;padding-bottom:0}
-.config-form button{border:0;border-radius:8px;padding:12px 16px;background:#e06b43;color:white;font:inherit;font-weight:bold;cursor:pointer}
-.config-form button.secondary-button,.config-form button.danger-button{background:white}
-.config-form button.secondary-button{border:1px solid #cbd7cb;color:#18372e}
-button:disabled{opacity:.6;cursor:default}
+.config-shell {
+  max-width: 980px;
+}
+.config-notice {
+  background: #e6ecdf;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 14px;
+  margin: 0 0 8px;
+}
+.config-token {
+  background: #fbf1ec;
+  border: 1px solid #e0a893;
+  border-radius: 12px;
+  padding: 20px 22px;
+  margin-bottom: 8px;
+}
+.config-token h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+.config-token__value {
+  display: block;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 13px;
+  word-break: break-all;
+  background: white;
+  border: 1px solid #e0cfc4;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 14px 0;
+}
+.config-list {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.config-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: white;
+  border: 1px solid #dfe5dc;
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.config-list li > div:first-child {
+  display: grid;
+  gap: 3px;
+  min-width: 220px;
+}
+.config-list strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+}
+.config-list small {
+  color: #607167;
+  font-size: 13px;
+}
+.config-list__inactive {
+  opacity: 0.55;
+}
+.config-tag {
+  background: #e6ecdf;
+  border-radius: 20px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: normal;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #3d5c4e;
+}
+.config-row-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.config-form {
+  margin-top: 26px;
+  background: white;
+  border: 1px solid #dfe5dc;
+  border-radius: 12px;
+  padding: 20px 22px;
+}
+.config-form h3 {
+  margin: 0 0 16px;
+  font-size: 17px;
+}
+.config-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+}
+.config-fields label {
+  display: grid;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: bold;
+}
+.config-fields input,
+.config-fields select {
+  border: 1px solid #cbd7cb;
+  border-radius: 8px;
+  padding: 11px;
+  font: inherit;
+  background: white;
+  color: #18372e;
+  font-weight: normal;
+  width: 100%;
+}
+.config-check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+  color: #607167;
+  margin-top: 16px;
+}
+.config-check input {
+  width: 17px;
+  height: 17px;
+}
+.config-form .poste-actions {
+  margin-top: 18px;
+  padding-bottom: 0;
+}
+.config-form button {
+  border: 0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  background: #e06b43;
+  color: white;
+  font: inherit;
+  font-weight: bold;
+  cursor: pointer;
+}
+.config-form button.secondary-button,
+.config-form button.danger-button {
+  background: white;
+}
+.config-form button.secondary-button {
+  border: 1px solid #cbd7cb;
+  color: #18372e;
+}
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
 
-@media(max-width:560px){.config-list li{flex-direction:column;align-items:flex-start}}
+@media (max-width: 560px) {
+  .config-list li {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

@@ -13,8 +13,18 @@ async function handlePATCH(request: Request, { params }: { params: Promise<{ id:
     const changes = validateStation(await readJson(request), false);
     if (!Object.keys(changes).length) throw new UserError('Aucune modification fournie.');
     await connectMongo();
-    if (changes.isDefault) await PreparationStation.updateMany({ restaurantId: session.restaurantId, _id: { $ne: id } }, { $set: { isDefault: false } });
-    const station = await PreparationStation.findOneAndUpdate({ _id: id, restaurantId: session.restaurantId }, { $set: changes }, { new: true, runValidators: true }).select(STATION_FIELDS).lean();
+    if (changes.isDefault)
+      await PreparationStation.updateMany(
+        { restaurantId: session.restaurantId, _id: { $ne: id } },
+        { $set: { isDefault: false } },
+      );
+    const station = await PreparationStation.findOneAndUpdate(
+      { _id: id, restaurantId: session.restaurantId },
+      { $set: changes },
+      { new: true, runValidators: true },
+    )
+      .select(STATION_FIELDS)
+      .lean();
     if (!station) throw new UserError('Poste introuvable.', 404);
     return Response.json(station);
   });
@@ -32,5 +42,5 @@ async function handleDELETE(_request: Request, { params }: { params: Promise<{ i
   });
 }
 
-export const PATCH = withAudit("PATCH /api/stations/[id]", handlePATCH);
-export const DELETE = withAudit("DELETE /api/stations/[id]", handleDELETE);
+export const PATCH = withAudit('PATCH /api/stations/[id]', handlePATCH);
+export const DELETE = withAudit('DELETE /api/stations/[id]', handleDELETE);

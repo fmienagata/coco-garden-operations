@@ -31,12 +31,19 @@ export async function readDevice(request: Request): Promise<DeviceIdentity | nul
   const token = request.headers.get(DEVICE_HEADER);
   if (!token) return null;
   await connectMongo();
-  const device = await Device.findOne({ tokenHash: hashDeviceToken(token), active: true, deletedAt: null })
-    .select('restaurantId name kind numberPrefix').lean() as any;
+  const device = (await Device.findOne({ tokenHash: hashDeviceToken(token), active: true, deletedAt: null })
+    .select('restaurantId name kind numberPrefix')
+    .lean()) as any;
   if (!device) throw new UserError('Poste non reconnu ou désactivé.', 401);
   // Trace de vie utile au support : quel poste a parlé en dernier, et quand.
   Device.updateOne({ _id: device._id }, { $set: { lastSeenAt: new Date() } }).catch(() => {});
-  return { id: String(device._id), restaurantId: device.restaurantId, name: device.name, kind: device.kind, numberPrefix: device.numberPrefix };
+  return {
+    id: String(device._id),
+    restaurantId: device.restaurantId,
+    name: device.name,
+    kind: device.kind,
+    numberPrefix: device.numberPrefix,
+  };
 }
 
 export async function requireDevice(request: Request): Promise<DeviceIdentity> {

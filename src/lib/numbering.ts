@@ -25,11 +25,11 @@ export async function allocateLease(restaurantId: string, device: DeviceIdentity
     throw new UserError(`Taille de plage invalide (1 à ${MAX_LEASE_SIZE}).`);
   }
   await connectMongo();
-  const counter = await OrderCounter.findOneAndUpdate(
+  const counter = (await OrderCounter.findOneAndUpdate(
     { _id: restaurantId },
     { $inc: { sequence: size } },
     { new: true, upsert: true, setDefaultsOnInsert: true },
-  ).lean() as { sequence: number } | null;
+  ).lean()) as { sequence: number } | null;
   if (!counter) throw new UserError('Attribution de numéros impossible.', 503);
 
   const end = counter.sequence;
@@ -60,7 +60,12 @@ export async function assertNumberIsLeased(restaurantId: string, device: DeviceI
   const [, prefix, digits] = match;
   if (prefix !== device.numberPrefix) throw new UserError('Ce numéro appartient à un autre poste.');
   const sequence = Number(digits);
-  const lease = await NumberLease.exists({ restaurantId, deviceId: device.id, start: { $lte: sequence }, end: { $gte: sequence } });
+  const lease = await NumberLease.exists({
+    restaurantId,
+    deviceId: device.id,
+    start: { $lte: sequence },
+    end: { $gte: sequence },
+  });
   if (!lease) throw new UserError('Ce numéro ne fait partie d’aucune plage attribuée à ce poste.');
   return orderNumber;
 }

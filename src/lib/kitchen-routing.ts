@@ -15,7 +15,14 @@ export type StationRoute = {
   printerWidth: number;
 };
 
-export type RoutedItem = { name: string; itemCode?: string; qty: number; price: number; category?: string; variant?: string };
+export type RoutedItem = {
+  name: string;
+  itemCode?: string;
+  qty: number;
+  price: number;
+  category?: string;
+  variant?: string;
+};
 export type TicketLine = { text: string; style: 'titre' | 'entete' | 'article' | 'detail' | 'note' | 'trait' };
 
 /**
@@ -47,8 +54,10 @@ function wrap(text: string, width: number, indent = '') {
   let current = '';
   for (const word of words) {
     const candidate = current ? `${current} ${word}` : word;
-    if (candidate.length > width && current) { lines.push(current); current = indent + word; }
-    else current = candidate;
+    if (candidate.length > width && current) {
+      lines.push(current);
+      current = indent + word;
+    } else current = candidate;
   }
   if (current) lines.push(current);
   return lines.length ? lines : [''];
@@ -81,9 +90,12 @@ export function renderTicket(source: TicketSource, station: StationRoute, items:
 
   lines.push({ text: station.name.toUpperCase(), style: 'titre' });
 
-  const where = source.fulfillmentType === 'dine_in'
-    ? `TABLE ${source.tableNumber ?? '?'}${source.covers ? ` · ${source.covers} couverts` : ''}`
-    : source.fulfillmentType === 'delivery' ? 'LIVRAISON' : 'A EMPORTER';
+  const where =
+    source.fulfillmentType === 'dine_in'
+      ? `TABLE ${source.tableNumber ?? '?'}${source.covers ? ` · ${source.covers} couverts` : ''}`
+      : source.fulfillmentType === 'delivery'
+        ? 'LIVRAISON'
+        : 'A EMPORTER';
   lines.push({ text: where, style: 'entete' });
   lines.push({ text: `${source.orderNumber} · ${clock}`, style: 'entete' });
   if (source.createdByLabel) lines.push({ text: source.createdByLabel, style: 'detail' });
@@ -93,7 +105,8 @@ export function renderTicket(source: TicketSource, station: StationRoute, items:
     const prefix = `${item.qty}x `;
     const wrapped = wrap(item.name, width - prefix.length, ' '.repeat(prefix.length));
     lines.push({ text: prefix + wrapped[0], style: 'article' });
-    for (const extra of wrapped.slice(1)) lines.push({ text: ' '.repeat(prefix.length) + extra.trim(), style: 'article' });
+    for (const extra of wrapped.slice(1))
+      lines.push({ text: ' '.repeat(prefix.length) + extra.trim(), style: 'article' });
   }
 
   const notes = source.diningNotes?.trim();

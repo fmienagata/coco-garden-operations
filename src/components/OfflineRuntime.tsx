@@ -28,7 +28,9 @@ export default function OfflineRuntime() {
   }, []);
 
   // Le retour du réseau doit vider la file sans que personne ait à y penser.
-  useEffect(() => { if (!offline) flush(); }, [offline]);
+  useEffect(() => {
+    if (!offline) flush();
+  }, [offline]);
 
   const waiting = queue.pending.length;
   if (!offline && waiting === 0 && queue.numbersLeft > 0) return null;
@@ -45,8 +47,12 @@ export default function OfflineRuntime() {
     <div className={`offline-bar offline-bar--${tone}`} role="status" aria-live="polite">
       <span className="offline-bar__dot" aria-hidden="true" />
       <span>{message}</span>
-      {queue.enrolled && queue.numbersLeft > 0 && <span className="offline-bar__meta">{queue.numbersLeft} numéros en réserve</span>}
-      <Link href="/poste" className="offline-bar__link">Poste</Link>
+      {queue.enrolled && queue.numbersLeft > 0 && (
+        <span className="offline-bar__meta">{queue.numbersLeft} numéros en réserve</span>
+      )}
+      <Link href="/poste" className="offline-bar__link">
+        Poste
+      </Link>
     </div>
   );
 }

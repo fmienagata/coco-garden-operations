@@ -21,7 +21,8 @@ const NEVER_CACHE = ['/api/auth/', '/api/sync', '/api/number-leases', '/api/devi
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(SHELL)
+    caches
+      .open(SHELL)
       .then((cache) => cache.addAll(SHELL_ROUTES).catch(() => undefined))
       .then(() => self.skipWaiting()),
   );
@@ -29,7 +30,8 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys()
+    caches
+      .keys()
       .then((keys) => Promise.all(keys.filter((key) => key !== SHELL && key !== DATA).map((key) => caches.delete(key))))
       .then(() => self.clients.claim()),
   );
@@ -74,14 +76,17 @@ self.addEventListener('fetch', (event) => {
   if (request.mode === 'navigate') {
     event.respondWith(
       networkFirst(request, SHELL).catch(async () => {
-        const cached = await caches.match(url.pathname) || await caches.match('/cuisine');
-        return cached || new Response(
-          '<!doctype html><meta charset="utf-8"><title>Hors ligne</title>'
-          + '<body style="font-family:system-ui;padding:24px">'
-          + '<h1>Poste hors ligne</h1>'
-          + '<p>Cet écran n\'a pas encore été enregistré sur ce poste. Ouvrez-le une fois en étant connecté.</p>'
-          + '</body>',
-          { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
+        const cached = (await caches.match(url.pathname)) || (await caches.match('/cuisine'));
+        return (
+          cached ||
+          new Response(
+            '<!doctype html><meta charset="utf-8"><title>Hors ligne</title>' +
+              '<body style="font-family:system-ui;padding:24px">' +
+              '<h1>Poste hors ligne</h1>' +
+              "<p>Cet écran n'a pas encore été enregistré sur ce poste. Ouvrez-le une fois en étant connecté.</p>" +
+              '</body>',
+            { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
+          )
         );
       }),
     );

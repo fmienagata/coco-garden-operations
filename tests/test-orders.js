@@ -12,12 +12,18 @@ if (fs.existsSync(envPath)) {
 
 (async function main() {
   const base = process.env.BASE_URL || 'http://127.0.0.1:3001';
-  function fail(msg) { throw new Error(msg); }
+  function fail(msg) {
+    throw new Error(msg);
+  }
 
   try {
     const loginRes = await fetch(base + '/api/auth/login', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ login: process.env.CUISINE_LOGIN || 'cuisine', password: process.env.CUISINE_PASSWORD || 'cuisine' })
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        login: process.env.CUISINE_LOGIN || 'cuisine',
+        password: process.env.CUISINE_PASSWORD || 'cuisine',
+      }),
     });
     if (!loginRes.ok) fail('Login returned ' + loginRes.status);
     const cookie = loginRes.headers.get('set-cookie')?.split(';')[0];
@@ -31,8 +37,9 @@ if (fs.existsSync(envPath)) {
 
     // create
     const createRes = await fetch(base + '/api/orders', {
-      method: 'POST', headers,
-      body: JSON.stringify({ fulfillmentType: 'takeaway', items: [{ itemCode: menuItem.itemCode, qty: 2, price: 1 }] })
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ fulfillmentType: 'takeaway', items: [{ itemCode: menuItem.itemCode, qty: 2, price: 1 }] }),
     });
     if (createRes.status !== 201) {
       const text = await createRes.text();
@@ -42,21 +49,24 @@ if (fs.existsSync(envPath)) {
     const created = await createRes.json();
     if (!created._id) fail('Created missing _id');
     if (created.tableNumber !== undefined) fail('Takeaway order must not be linked to a table');
-    if (created.items[0].price !== menuItem.price || created.total !== menuItem.price * 2) fail('Order did not use the menu price');
+    if (created.items[0].price !== menuItem.price || created.total !== menuItem.price * 2)
+      fail('Order did not use the menu price');
 
     console.log('Created id:', created._id);
     // Cuisine must follow the preparation workflow and cannot mutate totals.
     const forbiddenRes = await fetch(base + '/api/orders/update', {
-      method: 'POST', headers,
-      body: JSON.stringify({ id: created._id, patch: { total: 1 } })
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ id: created._id, patch: { total: 1 } }),
     });
     if (forbiddenRes.status !== 400) fail('Arbitrary order patch was accepted');
 
     // P0 : PUT /api/orders/[id] appliquait Object.assign(order, body) et a été retiré.
     // Le total, le statut et le restaurantId ne doivent plus être modifiables librement.
     const putRes = await fetch(base + '/api/orders/' + created._id, {
-      method: 'PUT', headers,
-      body: JSON.stringify({ total: 1, status: 'completed', restaurantId: 'autre-restaurant' })
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ total: 1, status: 'completed', restaurantId: 'autre-restaurant' }),
     });
     if (putRes.status !== 405) fail('PUT /api/orders/[id] must no longer be routable, got ' + putRes.status);
 
@@ -66,30 +76,42 @@ if (fs.existsSync(envPath)) {
 
     // P0 : la route de santé est publique et ne doit jamais renvoyer le détail d'une erreur Mongo.
     const healthBody = await (await fetch(base + '/api/health')).text();
-    if (/mongodb:\/\//.test(healthBody) || /"error"/.test(healthBody)) fail('Health route leaks connection details: ' + healthBody);
+    if (/mongodb:\/\//.test(healthBody) || /"error"/.test(healthBody))
+      fail('Health route leaks connection details: ' + healthBody);
     for (const status of ['confirmed', 'preparing', 'ready']) {
       const updateRes = await fetch(base + '/api/orders/update', {
-        method: 'POST', headers,
-        body: JSON.stringify({ id: created._id, patch: { status } })
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ id: created._id, patch: { status } }),
       });
       if (updateRes.status !== 200) {
-        const text = await updateRes.text(); console.error('UPDATE error body:', text); fail('Update returned ' + updateRes.status);
+        const text = await updateRes.text();
+        console.error('UPDATE error body:', text);
+        fail('Update returned ' + updateRes.status);
       }
     }
 
     // list and verify status updated
     const listAfter = await (await fetch(base + '/api/orders', { headers })).json();
-    const foundAfter = listAfter.find((d)=>String(d._id)===String(created._id));
+    const foundAfter = listAfter.find((d) => String(d._id) === String(created._id));
     if (!foundAfter) fail('Order not found after update');
     if (foundAfter.status !== 'ready') fail('Order status not updated');
 
     // delete via POST /api/orders/delete
-    const deleteRes = await fetch(base + '/api/orders/delete', { method: 'POST', headers, body: JSON.stringify({ id: created._id }) });
-    if (deleteRes.status !== 200) { const text = await deleteRes.text(); console.error('DELETE error body:', text); fail('Delete returned ' + deleteRes.status); }
+    const deleteRes = await fetch(base + '/api/orders/delete', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ id: created._id }),
+    });
+    if (deleteRes.status !== 200) {
+      const text = await deleteRes.text();
+      console.error('DELETE error body:', text);
+      fail('Delete returned ' + deleteRes.status);
+    }
 
     // verify deletion via list
     const listFinal = await (await fetch(base + '/api/orders', { headers })).json();
-    const exists = listFinal.some((d)=>String(d._id)===String(created._id));
+    const exists = listFinal.some((d) => String(d._id) === String(created._id));
     if (exists) fail('Order still present after delete');
 
     console.log('OK: create → update → get → delete flow succeeded. id:', created._id);

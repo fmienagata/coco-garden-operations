@@ -19,7 +19,11 @@ export function verifyPassword(password: string, storedHash: string) {
 export function pinIsAcceptable(pin: string) {
   if (!/^\d{4,8}$/.test(pin)) return false;
   if (new Set(pin).size === 1) return false;
-  const ascending = pin.split('').every((digit, index, all) => index === 0 || Number(digit) === Number(all[index - 1]) + 1);
-  const descending = pin.split('').every((digit, index, all) => index === 0 || Number(digit) === Number(all[index - 1]) - 1);
+  const ascending = pin
+    .split('')
+    .every((digit, index, all) => index === 0 || Number(digit) === Number(all[index - 1]) + 1);
+  const descending = pin
+    .split('')
+    .every((digit, index, all) => index === 0 || Number(digit) === Number(all[index - 1]) - 1);
   return !ascending && !descending;
 }

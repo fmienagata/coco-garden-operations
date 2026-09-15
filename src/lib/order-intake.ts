@@ -25,12 +25,29 @@ export async function createIntakeOrder(
   options: { orderNumber?: string; requestKey?: string } = {},
 ) {
   const { restaurantId } = actor;
-  const { items, fulfillmentType = 'takeaway', customerName, customerPhone, deliveryAddress, deliveryNotes, driverPhone, deliveryZoneId } = payload;
+  const {
+    items,
+    fulfillmentType = 'takeaway',
+    customerName,
+    customerPhone,
+    deliveryAddress,
+    deliveryNotes,
+    driverPhone,
+    deliveryZoneId,
+  } = payload;
 
-  const hasDeliveryDetails = typeof customerPhone === 'string' && customerPhone.trim().length >= 8
-    && typeof deliveryAddress === 'string' && deliveryAddress.trim().length >= 5;
-  if ((fulfillmentType === 'delivery' && (!hasDeliveryDetails || typeof deliveryZoneId !== 'string' || !deliveryZoneId.trim()))
-    || !Array.isArray(items) || items.length === 0 || !['delivery', 'takeaway'].includes(fulfillmentType)) {
+  const hasDeliveryDetails =
+    typeof customerPhone === 'string' &&
+    customerPhone.trim().length >= 8 &&
+    typeof deliveryAddress === 'string' &&
+    deliveryAddress.trim().length >= 5;
+  if (
+    (fulfillmentType === 'delivery' &&
+      (!hasDeliveryDetails || typeof deliveryZoneId !== 'string' || !deliveryZoneId.trim())) ||
+    !Array.isArray(items) ||
+    items.length === 0 ||
+    !['delivery', 'takeaway'].includes(fulfillmentType)
+  ) {
     throw new UserError('Invalid payload');
   }
 
@@ -44,21 +61,30 @@ export async function createIntakeOrder(
 
   const menuItems = await MenuItem.find({ restaurantId, active: true }).lean();
   const normalizedItems = items.map((item: any) => {
-    const menuItem = menuItems.find((candidate: any) => (item.itemCode && candidate.itemCode === item.itemCode) || (!item.itemCode && candidate.name === item.name));
+    const menuItem = menuItems.find(
+      (candidate: any) =>
+        (item.itemCode && candidate.itemCode === item.itemCode) || (!item.itemCode && candidate.name === item.name),
+    );
     if (!menuItem || !Number.isInteger(item.qty) || item.qty <= 0) return null;
     return { name: menuItem.name, itemCode: menuItem.itemCode, qty: item.qty, price: menuItem.price };
   });
-  if (normalizedItems.some((item) => !item)) throw new UserError('Each item must match an available menu item and have a positive quantity');
+  if (normalizedItems.some((item) => !item))
+    throw new UserError('Each item must match an available menu item and have a positive quantity');
   const validItems = normalizedItems as { name: string; itemCode: string; qty: number; price: number }[];
 
-  const zone = fulfillmentType === 'delivery'
-    ? await DeliveryZone.findOne({ restaurantId, _id: deliveryZoneId, active: true }).lean() as { _id: unknown; name: string; fee: number } | null
-    : null;
+  const zone =
+    fulfillmentType === 'delivery'
+      ? ((await DeliveryZone.findOne({ restaurantId, _id: deliveryZoneId, active: true }).lean()) as {
+          _id: unknown;
+          name: string;
+          fee: number;
+        } | null)
+      : null;
   if (fulfillmentType === 'delivery' && !zone) throw new UserError('Choisissez une zone de livraison active');
 
   const deliveryFee = zone?.fee || 0;
   const total = validItems.reduce((sum, item) => sum + item.price * item.qty, 0) + deliveryFee;
-  const orderNumber = options.orderNumber || await getNextOrderNumber(restaurantId);
+  const orderNumber = options.orderNumber || (await getNextOrderNumber(restaurantId));
 
   const order = await Order.create({
     restaurantId,

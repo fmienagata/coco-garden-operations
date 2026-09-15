@@ -31,26 +31,34 @@ function open(): Promise<IDBDatabase> {
       request.onsuccess = () => resolve(request.result);
       // Une promesse rejetée ne reste pas en cache : un échec transitoire ne doit pas
       // condamner la base locale jusqu'au rechargement de la page.
-      request.onerror = () => { connection = null; reject(request.error); };
+      request.onerror = () => {
+        connection = null;
+        reject(request.error);
+      };
     });
   }
   return connection;
 }
 
 function run<T>(store: string, mode: IDBTransactionMode, work: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
-  return open().then((db) => new Promise<T>((resolve, reject) => {
-    const transaction = db.transaction(store, mode);
-    const request = work(transaction.objectStore(store));
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  }));
+  return open().then(
+    (db) =>
+      new Promise<T>((resolve, reject) => {
+        const transaction = db.transaction(store, mode);
+        const request = work(transaction.objectStore(store));
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      }),
+  );
 }
 
 export async function readState<T>(key: string, fallback: T): Promise<T> {
   try {
     const row = await run<{ key: string; value: T } | undefined>(STATE, 'readonly', (store) => store.get(key));
     return row ? row.value : fallback;
-  } catch { return fallback; }
+  } catch {
+    return fallback;
+  }
 }
 
 export async function writeState<T>(key: string, value: T): Promise<void> {
@@ -60,7 +68,9 @@ export async function writeState<T>(key: string, value: T): Promise<void> {
 export async function readQueue<T>(): Promise<T[]> {
   try {
     return await run<T[]>(QUEUE, 'readonly', (store) => store.getAll());
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 export async function addToQueue<T extends { opId: string }>(operation: T): Promise<void> {

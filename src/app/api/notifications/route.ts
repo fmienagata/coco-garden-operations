@@ -7,8 +7,10 @@ async function handleGET() {
   return apiResponse(async () => {
     const session = await requireSession({ module: 'notifications' });
     await connectMongo();
-    return Response.json(await Notification.find({ restaurantId: session.restaurantId }).sort({ createdAt: -1 }).limit(200).lean());
+    return Response.json(
+      await Notification.find({ restaurantId: session.restaurantId }).sort({ createdAt: -1 }).limit(200).lean(),
+    );
   });
 }
 
-export const GET = withAudit("GET /api/notifications", handleGET);
+export const GET = withAudit('GET /api/notifications', handleGET);
