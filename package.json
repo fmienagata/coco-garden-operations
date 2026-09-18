@@ -20,6 +20,7 @@
     "seed:salle": "node scripts/seed-salle-test-data.js",
     "migrate:completed": "node scripts/migrate-completed-orders.js",
     "seed:menu": "node scripts/seed-menu.js",
+    "seed:poste-demo": "node scripts/seed-poste-demo.js",
     "seed:delivery-zones": "node scripts/seed-delivery-zones.js",
     "test:users": "node tests/test-users-api.cjs",
     "seed:users": "node scripts/seed-users.js",

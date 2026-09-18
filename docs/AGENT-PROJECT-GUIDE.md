@@ -349,7 +349,13 @@ npm.cmd run seed:users
 npm.cmd run seed:menu
 npm.cmd run seed:delivery-zones
 npm.cmd run seed:salle
+npm.cmd run seed:poste-demo
 ```
+
+`seed:poste-demo` monte de quoi éprouver le poste : trois postes de préparation couvrant les
+trois destinations, un appareil de caisse et un code de reprise sur un compte serveur. Le jeton
+d'appareil n'étant lisible qu'une fois, il est régénéré puis affiché à chaque exécution : un
+appareil déjà enrôlé doit être ré-enrôlé.
 
 Les seeds doivent être idempotents et ne pas supprimer les données réelles.
 
