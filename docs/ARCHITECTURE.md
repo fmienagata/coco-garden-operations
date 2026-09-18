@@ -2,8 +2,8 @@
 
 ## État actuel
 
-Socle Next.js et TypeScript, page d'accueil de démarrage et endpoint de santé.
-Aucun traitement réel de commande, compte utilisateur, stockage métier ou envoi WhatsApp n'est implémenté à ce stade.
+Socle Next.js, TypeScript et MongoDB avec authentification du poste cuisine, tableau de préparation et commandes isolées par `restaurantId`.
+Les montants sont des nombres entiers en XAF, affichés en FCFA. Chaque déploiement doit fournir un `RESTAURANT_ID` unique.
 
 ## Modules prévus
 
@@ -12,6 +12,12 @@ Aucun traitement réel de commande, compte utilisateur, stockage métier ou envo
 - Agent IA : API authentifiée avec validation serveur des actions.
 - Notifications : file persistante, dédoublonnage et reprises contrôlées.
 - Pilotage : commandes, ventes finalisées, encaissements et remboursements séparés.
+
+## Compatibilité multi-restaurant
+
+Toutes les données métier doivent porter un `restaurantId` et toutes les routes serveur doivent le dériver de la session, jamais du navigateur.
+Les paramètres propres à un établissement (nom, devise, fuseau horaire, horaires, moyens de paiement et utilisateurs) doivent vivre dans `restaurant_settings`.
+La devise par défaut du Congo est XAF/FCFA, sans décimales. La devise ne doit pas être codée dans les calculs métier afin de permettre l'ouverture à d'autres pays de la zone CEMAC.
 
 ## Règles métier à implémenter
 

@@ -3,12 +3,38 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --hostname 127.0.0.1",
+    "dev": "next dev --hostname 127.0.0.1 --port 3001",
     "build": "next build",
-    "start": "next start --hostname 127.0.0.1",
-    "typecheck": "tsc --noEmit"
+    "start": "next start --hostname 127.0.0.1 --port 3001",
+    "typecheck": "tsc --noEmit",
+    "guards": "node scripts/check-guards.js",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test:auth": "node --test tests/test-auth-unit.cjs",
+    "test:pilotage": "node --test tests/test-pilotage.cjs",
+    "test:pilotage:api": "node tests/test-pilotage-api.cjs",
+    "test:pilotage:window": "node tests/test-pilotage-window.cjs",
+    "test:orders": "node tests/test-orders.js",
+    "test:salle": "node tests/test-salle-api.cjs",
+    "seed:demo": "node scripts/seed-demo-orders.js",
+    "seed:salle": "node scripts/seed-salle-test-data.js",
+    "migrate:completed": "node scripts/migrate-completed-orders.js",
+    "seed:menu": "node scripts/seed-menu.js",
+    "seed:poste-demo": "node scripts/seed-poste-demo.js",
+    "seed:delivery-zones": "node scripts/seed-delivery-zones.js",
+    "test:users": "node tests/test-users-api.cjs",
+    "seed:users": "node scripts/seed-users.js",
+    "test:audit": "node tests/test-audit-api.cjs",
+    "test:roles": "node tests/test-roles-api.cjs",
+    "test:devices": "node tests/test-devices-api.cjs",
+    "test:sync": "node tests/test-sync-api.cjs",
+    "test:offline": "node --test tests/test-offline-core.cjs",
+    "test:routing": "node --test tests/test-kitchen-routing.cjs",
+    "test:kitchen": "node tests/test-kitchen-api.cjs",
+    "print-agent": "node scripts/print-agent.js"
   },
   "dependencies": {
+    "mongoose": "^7.5.0",
     "next": "^16.3.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
@@ -17,6 +43,7 @@
     "@types/node": "^26.5.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
+    "prettier": "^3.9.6",
     "typescript": "^7.0.2"
   }
 }

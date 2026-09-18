@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+# Une seule exécution par branche : les suites HTTP partagent une base, deux exécutions
+# simultanées se marcheraient dessus.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    services:
+      mongo:
+        image: mongo:7
+        ports: ['27017:27017']
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DB_PROVIDER: mongo
+      MONGO_URI: mongodb://127.0.0.1:27017/coco_garden_ci
+      RESTAURANT_ID: coco-garden
+      AUTH_SECRET: ci-secret-non-utilise-en-production
+      CUISINE_LOGIN: cuisine-ci
+      CUISINE_PASSWORD: CocoCI2026!
+      WHATSAPP_AGENT_TOKEN: whatsapp-agent-ci
+      NEXT_PUBLIC_RESTAURANT_NAME: Coco Garden
+      TEST_BASE_URL: http://127.0.0.1:3001
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # Contrôles statiques d'abord : ils échouent en secondes et sans base.
+      - name: Types
+        run: npm run typecheck
+
+      - name: Garde-fous d'architecture
+        run: npm run guards
+
+      - name: Format
+        run: npm run format:check
+
+      - name: Tests unitaires
+        run: |
+          npm run test:offline
+          npm run test:routing
+          npm run test:pilotage
+          npm run test:auth
+
+      - name: Build
+        run: npm run build
+
+      - name: Jeu de données
+        run: |
+          npm run seed:users
+          npm run seed:menu
+          npm run seed:delivery-zones
+
+      - name: Démarrer l'application
+        run: |
+          npm run start &
+          # `npm start` écoute sur 127.0.0.1:3001 ; on attend qu'il réponde vraiment
+          # plutôt que de dormir un délai arbitraire.
+          for attempt in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:3001/api/health > /dev/null; then
+              echo "Application prête après ${attempt}s."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "L'application n'a pas répondu en 60 secondes."
+          exit 1
+
+      - name: Tests d'intégration
+        run: |
+          npm run test:orders
+          npm run test:roles
+          npm run test:devices
+          npm run test:sync
+          npm run test:kitchen
+          npm run test:salle
+          npm run test:users
+          npm run test:audit
+          npm run test:pilotage:api
+          npm run test:pilotage:window

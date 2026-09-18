@@ -7,3 +7,6 @@ coverage/
 !.env.example
 *.log
 .DS_Store
+
+# Documents de travail sans rapport avec le dépôt, déposés ici par commodité.
+outputs/

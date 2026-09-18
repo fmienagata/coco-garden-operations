@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 250" role="img" aria-labelledby="title desc">
+  <title id="title">Coco Garden Restaurant Bar</title>
+  <desc id="desc">Coco Garden, restaurant et bar, saveur locale et européenne</desc>
+  <rect width="920" height="250" fill="#102b1e"/>
+  <g fill="none" stroke="#c99b36" stroke-width="2">
+    <path d="M230 170h95M595 170h95"/>
+    <path d="M451 46c-24 4-50 12-76 24 26-2 51-1 76 6 24-12 47-18 75-20-26-5-50-8-75-10Z" fill="#c99b36" stroke="none"/>
+    <path d="M449 48c-13 13-26 23-39 31M449 48c-3 15-4 29-2 43"/>
+    <path d="M426 61c-12-5-23-6-33-4M439 54c-11-7-22-11-33-12M450 51c-9-10-18-17-27-21M414 71c-10 1-19 5-27 11M429 78c-7 6-12 13-16 21"/>
+  </g>
+  <text x="460" y="127" text-anchor="middle" fill="#f2ead4" font-family="Georgia, Times New Roman, serif" font-size="56" letter-spacing="8">COCO GARDEN</text>
+  <text x="460" y="164" text-anchor="middle" fill="#e3d3a6" font-family="Georgia, Times New Roman, serif" font-size="13" letter-spacing="7">RESTAURANT · BAR</text>
+  <text x="460" y="209" text-anchor="middle" fill="#e3d3a6" font-family="Georgia, Times New Roman, serif" font-size="16" font-style="italic">Saveur locale &amp; européenne — du lundi au samedi, 11h00 à 23h00</text>
+</svg>

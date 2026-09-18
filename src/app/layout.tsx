@@ -1,11 +1,36 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import type { Metadata } from 'next';
+import './globals.css';
+import './logo.css';
+import './menu.css';
+import './delivery.css';
+import './ui-pro.css';
+import './delivery-polish.css';
+import './notifications.css';
+import './restaurant-contact.css';
+import './api-explorer.css';
+import './users.css';
+import './users-polish.css';
+import './modules.css';
+import './offline.css';
+import RestaurantContact from '../components/RestaurantContact';
+import ModuleNavigation from '../components/ModuleNavigation';
+import OfflineRuntime from '../components/OfflineRuntime';
+import { RESTAURANT_NAME } from '../lib/restaurant';
 
 export const metadata: Metadata = {
-  title: "Coco Garden — Cuisine & Livraison",
-  description: "Gestion de la préparation et de la livraison des commandes",
+  title: `${RESTAURANT_NAME} — Cuisine & Livraison`,
+  description: 'Gestion de la préparation et de la livraison des commandes',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="fr"><body>{children}</body></html>;
+  return (
+    <html lang="fr">
+      <body>
+        <OfflineRuntime />
+        <ModuleNavigation />
+        {children}
+        <RestaurantContact />
+      </body>
+    </html>
+  );
 }
