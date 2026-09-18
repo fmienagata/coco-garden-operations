@@ -19,11 +19,29 @@ export default function OfflineRuntime() {
 
   useEffect(() => {
     start();
-    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+    if (!('serviceWorker' in navigator)) return;
+
+    if (process.env.NODE_ENV === 'production') {
       navigator.serviceWorker.register('/sw.js').catch(() => {
         // Sans service worker, le travail hors ligne reste possible ; seul un
         // rechargement complet pendant une coupure échouera.
       });
+      return;
+    }
+
+    // Un service worker installé lors d'un essai en production reste attaché à l'origine,
+    // que le serveur suivant soit de développement ou même arrêté. Il resservirait alors la
+    // coque et les lectures de la veille sur des fragments Next qui, eux, changent à chaque
+    // reconstruction : l'écran paraît vivant alors que plus rien ne répond. On le retire.
+    navigator.serviceWorker
+      .getRegistrations()
+      .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+      .catch(() => {});
+    if ('caches' in window) {
+      caches
+        .keys()
+        .then((keys) => Promise.all(keys.filter((key) => key.startsWith('coco-')).map((key) => caches.delete(key))))
+        .catch(() => {});
     }
   }, []);
 

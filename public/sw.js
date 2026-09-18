@@ -8,7 +8,7 @@
  * blanche, et le travail hors ligne ne vaut plus rien.
  */
 
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL = `coco-shell-${VERSION}`;
 const DATA = `coco-data-${VERSION}`;
 
@@ -76,7 +76,9 @@ self.addEventListener('fetch', (event) => {
   if (request.mode === 'navigate') {
     event.respondWith(
       networkFirst(request, SHELL).catch(async () => {
-        const cached = (await caches.match(url.pathname)) || (await caches.match('/cuisine'));
+        // Rien d'autre que l'écran demandé : replier sur la Cuisine afficherait la Cuisine
+        // sous l'URL d'un autre module, et l'écran manquant passerait pour un écran cassé.
+        const cached = await caches.match(url.pathname);
         return (
           cached ||
           new Response(
