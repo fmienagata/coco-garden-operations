@@ -285,10 +285,12 @@ $env:PRINT_AGENT_OUTPUT = "texte"
 npm.cmd run print-agent
 ```
 
+Les postes de préparation et les appareils enrôlés se configurent dans `/configuration`,
+réservé à `admin`. Le jeton d'un appareil n'y est lisible qu'à l'enrôlement et à la rotation.
+
 **Limite connue.** Un bon est produit à la confirmation, une seule fois par commande et par
 poste. L'envoi par tour et l'ajout de lignes à un ticket déjà parti ne sont pas encore
-modélisés. La configuration des postes se fait par l'API : il n'y a pas encore d'écran
-d'administration.
+modélisés.
 
 `npm.cmd run test:kitchen` couvre le routage, la séparation des bons, la réclamation unique,
 la reprise après échec, l'absence de doublon au rejeu et la file par écran.
